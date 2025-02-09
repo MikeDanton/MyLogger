@@ -41,27 +41,33 @@ Logger::~Logger() {
 
 void Logger::addBackend(std::unique_ptr<LogBackend> backend) {
     std::lock_guard<std::mutex> lock(mutex);
+
+    for (const auto& existingBackend : backends) {
+        if (typeid(*existingBackend) == typeid(*backend)) {
+            return;  // Prevent duplicate backend
+        }
+    }
     backends.push_back(std::move(backend));
 }
 
-// ✅ Allow setting the log level dynamically
+void Logger::log(LogLevel level, const std::string& message) {
+    if (level < minLogLevel) return;
+
+    std::string formattedMessage = std::format("{} [{}] {}\n",
+                                               getCurrentTimestamp(),
+                                               to_string(level),
+                                               message);
+
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        logQueue.emplace(level, formattedMessage);
+    }
+    cv.notify_one();
+}
+
 void Logger::setLogLevel(LogLevel level) {
     std::lock_guard<std::mutex> lock(mutex);
     minLogLevel = level;
-}
-
-void Logger::log(LogLevel level, const std::string& message) {
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        if (level < minLogLevel) return;  // ✅ Apply filtering before adding to queue
-
-        std::string formattedMessage = std::format("{} [{}] {}\n",
-                                                   getCurrentTimestamp(),
-                                                   to_string(level),
-                                                   message);
-        logQueue.push({level, formattedMessage});
-    }
-    cv.notify_one();
 }
 
 void Logger::processQueue() {
@@ -69,15 +75,13 @@ void Logger::processQueue() {
         std::unique_lock<std::mutex> lock(mutex);
         cv.wait(lock, [this] { return !logQueue.empty() || exitFlag; });
 
-        // ✅ Process all pending logs in a batch (reduces locking overhead)
         std::vector<std::pair<LogLevel, std::string>> logs;
         while (!logQueue.empty()) {
             logs.push_back(std::move(logQueue.front()));
             logQueue.pop();
         }
-        lock.unlock();  // ✅ Release lock early to allow new logs
+        lock.unlock();
 
-        // ✅ Write logs outside the critical section
         for (const auto& [level, message] : logs) {
             for (const auto& backend : backends) {
                 backend->write(message);

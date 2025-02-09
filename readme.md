@@ -8,21 +8,24 @@
 
 ✅ **Asynchronous Logging** - Logs run in a background thread.  
 ✅ **Multiple Backends** - Supports **Console + File Logging Simultaneously**.  
-✅ **Log Level Filtering** - Set **INFO, WARN, or ERROR** log levels.  
+✅ **Log Level Filtering** - Set **INFO, WARN, ERROR, or DEBUG** log levels.  
 ✅ **Thread-Safe** - Uses **mutex and condition variables**.  
 ✅ **Timestamped Log Entries** - Every log message includes a precise timestamp.  
 ✅ **Timestamped Log Files** - Each session creates a new log file.  
 ✅ **Automatic Log Cleanup** - Removes logs older than a configurable threshold.  
+✅ **LoggerManager for Simplified Setup** - Easy global logger access and configuration.  
+✅ **Colored Console Output** - Logs appear in different colors for better readability.  
 ✅ **Easy Integration** - Single public include `#include "loggerLib.hpp"`.
 
 ---
 
-## 📂 Project Structure
+## 📚 Project Structure
 ```
 /myLogger/
 │── include/
 │   ├── loggerLib.hpp          <-- Public API (Single Include)
 │   ├── logger.hpp             <-- Core Logger
+│   ├── loggerManager.hpp      <-- LoggerManager for Simplified Setup
 │   ├── logLevel.hpp           <-- Log Level Enums
 │   ├── logBackend.hpp         <-- Backend Interface
 │   ├── consoleBackend.hpp     <-- Console Logger
@@ -30,14 +33,20 @@
 │
 │── src/
 │   ├── logger.cpp
+│   ├── loggerManager.cpp      <-- LoggerManager Implementation
 │   ├── consoleBackend.cpp
 │   ├── fileBackend.cpp
+│
+│── demo/                      <-- Example applications
+│   ├── main.cpp               <-- Uses Logger & TaskManager
+│   ├── taskManager.hpp        <-- Example task manager using logging
+│   ├── taskManager.cpp
 │
 │── tests/
 │   ├── test_logger.cpp
 │
 │── CMakeLists.txt
-│── main.cpp
+│── README.md
 ```
 
 ---
@@ -46,7 +55,6 @@
 ### 1️⃣ Logger Class
 ```cpp
 #include "loggerLib.hpp"
-
 Logger logger;
 ```
 #### 📝 Methods
@@ -70,24 +78,35 @@ logger.log(LogLevel::ERROR, "Critical failure!");
 
 ---
 
-### 2️⃣ Available Log Levels
+### 2️⃣ LoggerManager for Easy Setup
 ```cpp
-enum class LogLevel { INFO, WARN, ERROR };
+#include "loggerManager.hpp"
+LoggerManager::configure(true, true, LogLevel::INFO);
+Logger& logger = LoggerManager::getInstance();
+logger.log(LogLevel::INFO, "Application started");
 ```
-✅ **INFO** → Logs everything.  
-✅ **WARN** → Logs `WARN` and `ERROR`.  
-✅ **ERROR** → Logs only `ERROR`.
 
 ---
 
-### 3️⃣ Console Logging
+### 3️⃣ Available Log Levels
+```cpp
+enum class LogLevel { INFO, WARN, ERROR, DEBUG };
+```
+✅ **INFO** → Logs everything.  
+✅ **WARN** → Logs `WARN` and `ERROR`.  
+✅ **ERROR** → Logs only `ERROR`.  
+✅ **DEBUG** → Most detailed logs for debugging purposes.
+
+---
+
+### 4️⃣ Console Logging
 ```cpp
 logger.addBackend(std::make_unique<ConsoleBackend>());
 ```
 
 ---
 
-### 4️⃣ File Logging (Timestamped Files)
+### 5️⃣ File Logging (Timestamped Files)
 ```cpp
 auto fileBackend = std::make_unique<FileBackend>();
 std::cout << "Logging to file: " << fileBackend->getFilename() << "\n";
@@ -96,14 +115,14 @@ logger.addBackend(std::move(fileBackend));
 
 ---
 
-### 5️⃣ Automatic Log Cleanup
+### 6️⃣ Automatic Log Cleanup
 ```cpp
 fileBackend->cleanOldLogs(7);  // ✅ Deletes logs older than 7 days
 ```
 
 ---
 
-### 6️⃣ Timestamped Log Entries
+### 7️⃣ Timestamped Log Entries
 Each log entry now includes a **timestamp** for precise tracking:
 ```cpp
 [2025-02-09 14:32:10] [INFO] Starting automated simulation...
@@ -128,9 +147,10 @@ make
 ---
 
 ## 📌 Next Steps
-- ✅ **[ ] Implement a `LoggerManager` for Simplified Setup**
 - ✅ **[ ] Performance Benchmarking Under High Load**
 - ✅ **[ ] Improve Log Rotation (Compress Old Logs)**
+- ✅ **[ ] Expand LoggerManager for More Configurations**
+- ✅ **[ ] Implement Colored Console Logs for Better Readability**
 
 ---
 
