@@ -8,19 +8,19 @@
 
 class FileBackend : public LogBackend {
 public:
-    FileBackend();  // ✅ Uses auto-generated filename based on config
+    FileBackend();
     explicit FileBackend(const std::string& filename);
 
     void write(const std::string& message) override;
     void cleanOldLogs(int days);
-    std::string getFilename() const;  // ✅ Returns the log filename
+    std::string getFilename() const;
 
 private:
     std::ofstream logFile;
     std::string filename;
 
-    void ensureLogDirectoryExists();  // ✅ Ensures log directory is created
-    std::string generateLogFilePath();  // ✅ Uses logger.conf format
+    void ensureLogDirectoryExists();
+    std::string generateLogFilePath();
 };
 
 #endif // FILE_BACKEND_HPP
