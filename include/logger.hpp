@@ -20,6 +20,8 @@ public:
     void log(LogLevel level, const std::string& message);
     void flush();
 
+    [[nodiscard]] const std::vector<std::unique_ptr<LogBackend>>& getBackends() const;
+
 private:
     std::queue<std::pair<LogLevel, std::string>> logQueue;
     std::vector<std::unique_ptr<LogBackend>> backends;

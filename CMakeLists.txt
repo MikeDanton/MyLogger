@@ -9,7 +9,7 @@ add_library(myLoggerLib STATIC
         src/consoleBackend.cpp
         src/fileBackend.cpp
         src/loggerManager.cpp
-)
+        src/loggerConfig.cpp)
 
 target_include_directories(myLoggerLib PUBLIC include)
 

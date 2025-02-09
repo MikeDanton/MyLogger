@@ -96,3 +96,7 @@ void Logger::flush() {
     std::unique_lock<std::mutex> lock(mutex);
     cv.wait(lock, [this] { return logQueue.empty() && !exitFlag; });
 }
+
+const std::vector<std::unique_ptr<LogBackend>>& Logger::getBackends() const {
+    return backends;
+}

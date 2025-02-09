@@ -15,4 +15,12 @@ inline std::string to_string(LogLevel level) {
     }
 }
 
+inline LogLevel logLevelFromString(const std::string& levelStr) {
+    if (levelStr == "INFO") return LogLevel::INFO;
+    if (levelStr == "WARN") return LogLevel::WARN;
+    if (levelStr == "ERROR") return LogLevel::ERROR;
+    if (levelStr == "DEBUG") return LogLevel::DEBUG;
+    return LogLevel::INFO;  // Default if unknown
+}
+
 #endif // LOG_LEVEL_HPP
