@@ -2,6 +2,28 @@
 #include "consoleBackend.hpp"
 #include "fileBackend.hpp"
 #include <format>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+
+std::string getCurrentTimestamp() {
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+    std::tm localTime{};
+#ifdef _WIN32
+    localtime_s(&localTime, &now_time);
+#else
+    localtime_r(&now_time, &localTime);
+#endif
+    std::ostringstream oss;
+    oss << "[" << (localTime.tm_year + 1900) << "-"
+        << std::setw(2) << std::setfill('0') << (localTime.tm_mon + 1) << "-"
+        << std::setw(2) << std::setfill('0') << localTime.tm_mday << " "
+        << std::setw(2) << std::setfill('0') << localTime.tm_hour << ":"
+        << std::setw(2) << std::setfill('0') << localTime.tm_min << ":"
+        << std::setw(2) << std::setfill('0') << localTime.tm_sec << "]";
+    return oss.str();
+}
 
 Logger::Logger() : exitFlag(false), minLogLevel(LogLevel::INFO) {
     backends.push_back(std::make_unique<ConsoleBackend>());
@@ -33,7 +55,10 @@ void Logger::log(LogLevel level, const std::string& message) {
         std::lock_guard<std::mutex> lock(mutex);
         if (level < minLogLevel) return;  // ✅ Apply filtering before adding to queue
 
-        std::string formattedMessage = std::format("[{}] {}\n", to_string(level), message);
+        std::string formattedMessage = std::format("{} [{}] {}\n",
+                                                   getCurrentTimestamp(),
+                                                   to_string(level),
+                                                   message);
         logQueue.push({level, formattedMessage});
     }
     cv.notify_one();
