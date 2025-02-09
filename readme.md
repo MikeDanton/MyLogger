@@ -6,16 +6,17 @@
 
 ## 📌 Features
 
-✅ **Asynchronous Logging** - Logs run in a background thread.  
-✅ **Multiple Backends** - Supports **Console + File Logging Simultaneously**.  
-✅ **Log Level Filtering** - Set **INFO, WARN, ERROR, or DEBUG** log levels.  
-✅ **Thread-Safe** - Uses **mutex and condition variables**.  
-✅ **Timestamped Log Entries** - Every log message includes a precise timestamp.  
-✅ **Timestamped Log Files** - Each session creates a new log file.  
-✅ **Automatic Log Cleanup** - Removes logs older than a configurable threshold.  
-✅ **LoggerManager for Simplified Setup** - Easy global logger access and configuration.  
-✅ **Colored Console Output** - Logs appear in different colors for better readability.  
-✅ **Easy Integration** - Single public include `#include "loggerLib.hpp"`.
+👉 **Asynchronous Logging** - Logs run in a background thread.  
+👉 **Multiple Backends** - Supports **Console + File Logging Simultaneously**.  
+👉 **Log Level Filtering** - Set **INFO, WARN, ERROR, or DEBUG** log levels.  
+👉 **Thread-Safe** - Uses **mutex and condition variables**.  
+👉 **Timestamped Log Entries** - Every log message includes a precise timestamp.  
+👉 **Timestamped Log Files** - Each session creates a new log file.  
+👉 **Automatic Log Cleanup** - Removes logs older than a configurable threshold.  
+👉 **LoggerManager for Simplified Setup** - Easy global logger access and configuration.  
+👉 **Colored Console Output** - Logs appear in different colors for better readability.  
+👉 **Benchmarking Support** - Performance tests for logging efficiency and config loading speed.  
+👉 **Easy Integration** - Single public include `#include "loggerLib.hpp"`.
 
 ---
 
@@ -42,8 +43,12 @@
 │   ├── taskManager.hpp        <-- Example task manager using logging
 │   ├── taskManager.cpp
 │
-│── tests/
+│── tests/                     <-- Unit tests for correctness
 │   ├── test_logger.cpp
+│
+│── benchmarks/                <-- Performance benchmarks
+│   ├── benchmark_logger.cpp   <-- Logging throughput, latency tests
+│   ├── benchmark_config.cpp   <-- Config file loading performance
 │
 │── CMakeLists.txt
 │── README.md
@@ -52,7 +57,7 @@
 ---
 
 ## 📚 Public Interface
-### 1⃣ Logger Class
+### 1️⃣ Logger Class
 ```cpp
 #include "loggerLib.hpp"
 Logger logger;
@@ -78,7 +83,7 @@ logger.log(LogLevel::ERROR, "Critical failure!");
 
 ---
 
-### 2⃣ LoggerManager for Easy Setup
+### 2️⃣ LoggerManager for Easy Setup
 ```cpp
 #include "loggerManager.hpp"
 LoggerManager::configure(true, true, LogLevel::INFO);
@@ -88,7 +93,7 @@ logger.log(LogLevel::INFO, "Application started");
 
 ---
 
-### 3⃣ Available Log Levels
+### 3️⃣ Available Log Levels
 ```cpp
 enum class LogLevel { INFO, WARN, ERROR, DEBUG };
 ```
@@ -99,40 +104,32 @@ enum class LogLevel { INFO, WARN, ERROR, DEBUG };
 
 ---
 
-### 4⃣ Console Logging
-```cpp
-logger.addBackend(std::make_unique<ConsoleBackend>());
+## 📊 Benchmarking
+Performance testing using **Google Benchmark**:
+```sh
+mkdir build && cd build
+cmake ..
+make
+./myLoggerBenchmark
 ```
 
----
-
-### 5⃣ File Logging (Timestamped Files)
-```cpp
-auto fileBackend = std::make_unique<FileBackend>();
-std::cout << "Logging to file: " << fileBackend->getFilename() << "\n";
-logger.addBackend(std::move(fileBackend));
+### Benchmark Results
+#### Logging Performance:
 ```
-
----
-
-### 6⃣ Automatic Log Cleanup
-```cpp
-fileBackend->cleanOldLogs(7);  // ✅ Deletes logs older than 7 days
+Benchmark                      Time             CPU   Iterations
+----------------------------------------------------------------
+BM_LoggingPerformance       2252 ns         2175 ns       337001
 ```
+✅ **Optimized for high-speed logging with minimal overhead.**
 
----
-
-### 7⃣ Timestamped Log Entries
-Each log entry now includes a **timestamp** for precise tracking:
-```cpp
-[2025-02-09 14:32:10] [INFO] Starting automated simulation...
-[2025-02-09 14:32:11] [INFO] Added task: Buy groceries
-[2025-02-09 14:32:12] [INFO] Added task: Complete project
-[2025-02-09 14:32:13] [INFO] Listing tasks:
-[2025-02-09 14:32:13] [INFO] 1. Buy groceries
-[2025-02-09 14:32:13] [INFO] 2. Complete project
-[2025-02-09 14:32:15] [ERROR] Invalid task number: 10
+#### Config File Loading Performance:
 ```
+--------------------------------------------------------
+Benchmark              Time             CPU   Iterations
+--------------------------------------------------------
+BM_LoadConfig       3823 ns         3805 ns       182955
+```
+✅ **Efficient config file parsing and automatic loading.**
 
 ---
 
@@ -151,6 +148,7 @@ make
 - ✅ **[ ] Improve Log Rotation (Compress Old Logs)**
 - ✅ **[ ] Expand LoggerManager for More Configurations**
 - ✅ **[ ] Implement Colored Console Logs for Better Readability**
+- ✅ **[ ] Further optimize logging throughput and reduce latency**
 
 ---
 
