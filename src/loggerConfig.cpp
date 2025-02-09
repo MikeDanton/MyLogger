@@ -1,4 +1,5 @@
 #include "loggerConfig.hpp"
+#include "logLevel.hpp"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -29,7 +30,6 @@ void LoggerConfig::loadConfig(const std::string& filepath) {
     }
 }
 
-// ✅ Saves default config to a file
 void LoggerConfig::saveConfig(const std::string& filepath) {
     std::ofstream file(filepath);
     if (!file) {
@@ -43,12 +43,31 @@ void LoggerConfig::saveConfig(const std::string& filepath) {
     file << "log_rotation_days=7\n";
     file << "enable_console=true\n";
     file << "enable_file=true\n";
-    file << "enable_colors=false\n";
+    file << "enable_colors=false\n";  // 🔹 Default color mode off
     file << "flush_mode=auto\n";
     file << "log_level=INFO\n";
+
+    file << "info_color=32\n";   // Green
+    file << "warn_color=33\n";   // Yellow
+    file << "error_color=31\n";  // Red
+    file << "debug_color=36\n";  // Cyan
 }
 
-// ✅ Accessors
+std::string LoggerConfig::getColorForLevel(LogLevel level) {
+    if (!isColorEnabled()) return "";
+
+    std::string key;
+    switch (level) {
+    case LogLevel::INFO: key = "info_color"; break;
+    case LogLevel::WARN: key = "warn_color"; break;
+    case LogLevel::ERROR: key = "error_color"; break;
+    case LogLevel::DEBUG: key = "debug_color"; break;
+    }
+
+    return config.contains(key) ? "\033[" + config[key] + "m" : logLevelColor(level);
+}
+
+// Accessors
 std::string LoggerConfig::getLogDirectory() { return config["log_directory"]; }
 std::string LoggerConfig::getLogFilenameFormat() { return config["log_filename_format"]; }
 int LoggerConfig::getLogRotationDays() { return std::stoi(config["log_rotation_days"]); }

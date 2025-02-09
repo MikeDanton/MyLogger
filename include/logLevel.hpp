@@ -15,6 +15,17 @@ inline std::string to_string(LogLevel level) {
     }
 }
 
+// 🔹 Define ANSI color codes (color handling should be in ConsoleBackend)
+inline std::string logLevelColor(LogLevel level) {
+    switch (level) {
+    case LogLevel::INFO: return "\033[32m";  // Green
+    case LogLevel::WARN: return "\033[33m";  // Yellow
+    case LogLevel::ERROR: return "\033[31m"; // Red
+    case LogLevel::DEBUG: return "\033[36m"; // Cyan
+    default: return "";
+    }
+}
+
 inline LogLevel logLevelFromString(const std::string& levelStr) {
     if (levelStr == "INFO") return LogLevel::INFO;
     if (levelStr == "WARN") return LogLevel::WARN;

@@ -84,7 +84,11 @@ void Logger::processQueue() {
 
         for (const auto& [level, message] : logs) {
             for (const auto& backend : backends) {
-                backend->write(message);
+                if (auto consoleBackend = dynamic_cast<ConsoleBackend*>(backend.get())) {
+                    consoleBackend->write(message, level);
+                } else {
+                    backend->write(message);
+                }
             }
         }
 
