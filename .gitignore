@@ -1,0 +1,24 @@
+# Build files
+cmake-build-debug/
+*.o
+*.so
+*.a
+*.out
+*.exe
+*.dll
+*.dSYM/
+bin/
+lib/
+
+# IDE settings
+.idea/
+.vscode/
+*.iml
+
+# Log files
+logs/
+*.log
+
+# Configuration files
+logger.conf
+*.cfg
