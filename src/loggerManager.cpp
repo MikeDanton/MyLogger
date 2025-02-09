@@ -31,8 +31,7 @@ void LoggerManager::configure(bool useConsole, bool useFile, LogLevel level) {
     }
 
     if (useFile && !hasBackend<FileBackend>()) {
-        std::string logPath = LoggerConfig::getLogDirectory() + LoggerConfig::getLogFilenameFormat();
-        logger.addBackend(std::make_unique<FileBackend>(logPath));
+        logger.addBackend(std::make_unique<FileBackend>());
     }
 }
 

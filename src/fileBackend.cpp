@@ -7,7 +7,9 @@
 #include <filesystem>
 #include <chrono>
 
+// ✅ Default constructor calls `generateLogFilePath()`
 FileBackend::FileBackend() : FileBackend(generateLogFilePath()) {}
+
 
 FileBackend::FileBackend(const std::string& filename) : filename(filename) {
     ensureLogDirectoryExists();
@@ -27,16 +29,17 @@ void FileBackend::ensureLogDirectoryExists() {
     std::string logDir = LoggerConfig::getLogDirectory();
     if (!std::filesystem::exists(logDir)) {
         std::filesystem::create_directories(logDir);
-        std::cout << "[DEBUG] Created log directory: " << logDir << "\n";
     }
 }
 
 std::string FileBackend::generateLogFilePath() {
     std::string logDir = LoggerConfig::getLogDirectory();
-    std::string filenamePattern = LoggerConfig::getLogFilenameFormat();
+    std::string filenamePattern = LoggerConfig::getLogFilenameFormat(); // "log_%Y-%m-%d_%H-%M-%S.txt"
 
-    ensureLogDirectoryExists();
+    // Ensure log directory exists
+    std::filesystem::create_directories(logDir);
 
+    // Get current timestamp
     auto now = std::chrono::system_clock::now();
     std::time_t now_time = std::chrono::system_clock::to_time_t(now);
     std::tm localTime{};
@@ -46,25 +49,11 @@ std::string FileBackend::generateLogFilePath() {
     localtime_r(&now_time, &localTime);
 #endif
 
+    // Use `std::put_time` for formatting the filename pattern
     std::ostringstream oss;
-    for (size_t i = 0; i < filenamePattern.size(); ++i) {
-        if (filenamePattern[i] == '%' && i + 1 < filenamePattern.size()) {
-            switch (filenamePattern[i + 1]) {
-                case 'Y': oss << (localTime.tm_year + 1900); break;
-                case 'm': oss << std::setw(2) << std::setfill('0') << (localTime.tm_mon + 1); break;
-                case 'd': oss << std::setw(2) << std::setfill('0') << localTime.tm_mday; break;
-                case 'H': oss << std::setw(2) << std::setfill('0') << localTime.tm_hour; break;
-                case 'M': oss << std::setw(2) << std::setfill('0') << localTime.tm_min; break;
-                case 'S': oss << std::setw(2) << std::setfill('0') << localTime.tm_sec; break;
-                default: oss << filenamePattern[i] << filenamePattern[i + 1]; break;
-            }
-            ++i;
-        } else {
-            oss << filenamePattern[i];
-        }
-    }
+    oss << logDir << std::put_time(&localTime, filenamePattern.c_str());
 
-    return logDir + oss.str();
+    return oss.str();
 }
 
 void FileBackend::cleanOldLogs(int days) {
@@ -81,7 +70,6 @@ void FileBackend::cleanOldLogs(int days) {
 
             if (file_age >= days) {
                 fs::remove(entry);
-                std::cout << "[DEBUG] Removed old log file: " << entry.path() << "\n";
             }
         }
     }

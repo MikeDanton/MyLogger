@@ -19,7 +19,7 @@
 
 ---
 
-## 📚 Project Structure
+## 📂 Project Structure
 ```
 /myLogger/
 │── include/
@@ -52,7 +52,7 @@
 ---
 
 ## 📚 Public Interface
-### 1️⃣ Logger Class
+### 1⃣ Logger Class
 ```cpp
 #include "loggerLib.hpp"
 Logger logger;
@@ -78,7 +78,7 @@ logger.log(LogLevel::ERROR, "Critical failure!");
 
 ---
 
-### 2️⃣ LoggerManager for Easy Setup
+### 2⃣ LoggerManager for Easy Setup
 ```cpp
 #include "loggerManager.hpp"
 LoggerManager::configure(true, true, LogLevel::INFO);
@@ -88,7 +88,7 @@ logger.log(LogLevel::INFO, "Application started");
 
 ---
 
-### 3️⃣ Available Log Levels
+### 3⃣ Available Log Levels
 ```cpp
 enum class LogLevel { INFO, WARN, ERROR, DEBUG };
 ```
@@ -99,14 +99,14 @@ enum class LogLevel { INFO, WARN, ERROR, DEBUG };
 
 ---
 
-### 4️⃣ Console Logging
+### 4⃣ Console Logging
 ```cpp
 logger.addBackend(std::make_unique<ConsoleBackend>());
 ```
 
 ---
 
-### 5️⃣ File Logging (Timestamped Files)
+### 5⃣ File Logging (Timestamped Files)
 ```cpp
 auto fileBackend = std::make_unique<FileBackend>();
 std::cout << "Logging to file: " << fileBackend->getFilename() << "\n";
@@ -115,14 +115,14 @@ logger.addBackend(std::move(fileBackend));
 
 ---
 
-### 6️⃣ Automatic Log Cleanup
+### 6⃣ Automatic Log Cleanup
 ```cpp
 fileBackend->cleanOldLogs(7);  // ✅ Deletes logs older than 7 days
 ```
 
 ---
 
-### 7️⃣ Timestamped Log Entries
+### 7⃣ Timestamped Log Entries
 Each log entry now includes a **timestamp** for precise tracking:
 ```cpp
 [2025-02-09 14:32:10] [INFO] Starting automated simulation...
