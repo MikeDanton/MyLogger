@@ -84,8 +84,9 @@ int main() {
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
     if (choice == 2) {
-        logger.addBackend(std::make_unique<FileBackend>("simulation_log.txt"));
-        std::cout << "[INFO] Logging to both console and file: simulation_log.txt\n";
+        auto fileBackend = std::make_unique<FileBackend>();  // ✅ Uses timestamped file
+        std::cout << "Logging to both console and file: " << fileBackend->getFilename() << "\n";
+        logger.addBackend(std::move(fileBackend));
     }
 
     std::cout << "Set Log Level:\n";

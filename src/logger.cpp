@@ -44,12 +44,19 @@ void Logger::processQueue() {
         std::unique_lock<std::mutex> lock(mutex);
         cv.wait(lock, [this] { return !logQueue.empty() || exitFlag; });
 
+        // ✅ Process all pending logs in a batch (reduces locking overhead)
+        std::vector<std::pair<LogLevel, std::string>> logs;
         while (!logQueue.empty()) {
-            const auto& [level, message] = logQueue.front();
+            logs.push_back(std::move(logQueue.front()));
+            logQueue.pop();
+        }
+        lock.unlock();  // ✅ Release lock early to allow new logs
+
+        // ✅ Write logs outside the critical section
+        for (const auto& [level, message] : logs) {
             for (const auto& backend : backends) {
                 backend->write(message);
             }
-            logQueue.pop();
         }
 
         if (exitFlag) break;

@@ -1,6 +1,6 @@
 # myLogger - Asynchronous Multi-Backend Logger for C++
 
-🚀 **myLogger** is a **high-performance, asynchronous logger** supporting **multiple backends (console, file)** with **log level filtering**.
+🚀 **myLogger** is a **high-performance, asynchronous logger** supporting **multiple backends (console, file)** with **log level filtering** and **automatic log rotation**.
 
 ---
 
@@ -10,6 +10,8 @@
 ✅ **Multiple Backends** - Supports **Console + File Logging Simultaneously**.  
 ✅ **Log Level Filtering** - Set **INFO, WARN, or ERROR** log levels.  
 ✅ **Thread-Safe** - Uses **mutex and condition variables**.  
+✅ **Timestamped Log Files** - Each session creates a new log file.  
+✅ **Automatic Log Cleanup** - Removes logs older than a configurable threshold.  
 ✅ **Easy Integration** - Single public include `#include "loggerLib.hpp"`.
 
 ---
@@ -58,7 +60,7 @@ void flush();
 ```cpp
 Logger logger;
 logger.addBackend(std::make_unique<ConsoleBackend>());
-logger.addBackend(std::make_unique<FileBackend>("app_log.txt"));
+logger.addBackend(std::make_unique<FileBackend>());  // ✅ Uses timestamped filename
 
 logger.setLogLevel(LogLevel::WARN);
 logger.log(LogLevel::INFO, "This won't be logged due to filtering");
@@ -84,9 +86,18 @@ logger.addBackend(std::make_unique<ConsoleBackend>());
 
 ---
 
-### 4️⃣ File Logging
+### 4️⃣ File Logging (Timestamped Files)
 ```cpp
-logger.addBackend(std::make_unique<FileBackend>("log_2025-02-09.txt"));
+auto fileBackend = std::make_unique<FileBackend>();
+std::cout << "Logging to file: " << fileBackend->getFilename() << "\n";
+logger.addBackend(std::move(fileBackend));
+```
+
+---
+
+### 5️⃣ Automatic Log Cleanup
+```cpp
+fileBackend->cleanOldLogs(7);  // ✅ Deletes logs older than 7 days
 ```
 
 ---
@@ -102,9 +113,9 @@ make
 ---
 
 ## 📌 Next Steps
-- ✅ **[ ] Log Rotation (Auto-Delete Old Logs)**
-- ✅ **[ ] Benchmark Performance with High Load**
-- ✅ **[ ] Add a `LoggerManager` for Simplified Setup**
+- ✅ **[ ] Improve Log Formatting (Timestamps per Log Entry)**
+- ✅ **[ ] Implement a `LoggerManager` for Simplified Setup**
+- ✅ **[ ] Performance Benchmarking Under High Load**
 
 ---
 
