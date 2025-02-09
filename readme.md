@@ -1,6 +1,6 @@
 # myLogger - Asynchronous Multi-Backend Logger for C++
 
-🚀 **myLogger** is a **high-performance, asynchronous logger** supporting **multiple backends (console, file)** with **log level filtering** and **automatic log rotation**.
+🚀 **myLogger** is a **high-performance, asynchronous logger** supporting **multiple backends (console, file)** with **log level filtering**, **automatic log rotation**, and **timestamped log entries**.
 
 ---
 
@@ -10,6 +10,7 @@
 ✅ **Multiple Backends** - Supports **Console + File Logging Simultaneously**.  
 ✅ **Log Level Filtering** - Set **INFO, WARN, or ERROR** log levels.  
 ✅ **Thread-Safe** - Uses **mutex and condition variables**.  
+✅ **Timestamped Log Entries** - Every log message includes a precise timestamp.  
 ✅ **Timestamped Log Files** - Each session creates a new log file.  
 ✅ **Automatic Log Cleanup** - Removes logs older than a configurable threshold.  
 ✅ **Easy Integration** - Single public include `#include "loggerLib.hpp"`.
@@ -102,6 +103,20 @@ fileBackend->cleanOldLogs(7);  // ✅ Deletes logs older than 7 days
 
 ---
 
+### 6️⃣ Timestamped Log Entries
+Each log entry now includes a **timestamp** for precise tracking:
+```cpp
+[2025-02-09 14:32:10] [INFO] Starting automated simulation...
+[2025-02-09 14:32:11] [INFO] Added task: Buy groceries
+[2025-02-09 14:32:12] [INFO] Added task: Complete project
+[2025-02-09 14:32:13] [INFO] Listing tasks:
+[2025-02-09 14:32:13] [INFO] 1. Buy groceries
+[2025-02-09 14:32:13] [INFO] 2. Complete project
+[2025-02-09 14:32:15] [ERROR] Invalid task number: 10
+```
+
+---
+
 ## 🚀 Running the Example Program
 ```sh
 mkdir build && cd build
@@ -113,9 +128,9 @@ make
 ---
 
 ## 📌 Next Steps
-- ✅ **[ ] Improve Log Formatting (Timestamps per Log Entry)**
 - ✅ **[ ] Implement a `LoggerManager` for Simplified Setup**
 - ✅ **[ ] Performance Benchmarking Under High Load**
+- ✅ **[ ] Improve Log Rotation (Compress Old Logs)**
 
 ---
 
