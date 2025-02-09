@@ -1,6 +1,8 @@
 #include "logger.hpp"
 #include "consoleBackend.hpp"
 #include "fileBackend.hpp"
+#include "loggerConfig.hpp"
+#include "logContext.hpp"
 #include <format>
 #include <chrono>
 #include <iomanip>
@@ -50,12 +52,13 @@ void Logger::addBackend(std::unique_ptr<LogBackend> backend) {
     backends.push_back(std::move(backend));
 }
 
-void Logger::log(LogLevel level, const std::string& message) {
-    if (level < minLogLevel) return;
+void Logger::log(LogLevel level, LogContext context, const std::string& message) {
+    if (level < minLogLevel || !LoggerConfig::isContextEnabled(context)) return;
 
-    std::string formattedMessage = std::format("{} [{}] {}\n",
+    std::string formattedMessage = std::format("{} [{}] [{}] {}\n",
                                                getCurrentTimestamp(),
                                                to_string(level),
+                                               to_string(context),
                                                message);
 
     {
@@ -63,6 +66,10 @@ void Logger::log(LogLevel level, const std::string& message) {
         logQueue.emplace(level, formattedMessage);
     }
     cv.notify_one();
+}
+
+void Logger::log(LogLevel level, const std::string& message) {
+    log(level, LogContext::GENERAL, message);
 }
 
 void Logger::setLogLevel(LogLevel level) {

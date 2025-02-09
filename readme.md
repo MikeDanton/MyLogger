@@ -144,8 +144,10 @@ make
 ---
 
 ## 📌 Next Steps
+- ✅ **[ ] Performance Benchmarking Under High Load**
 - ✅ **[ ] Improve Log Rotation (Compress Old Logs)**
 - ✅ **[ ] Expand LoggerManager for More Configurations**
+- ✅ **[ ] Implement Colored Console Logs for Better Readability**
 - ✅ **[ ] Further optimize logging throughput and reduce latency**
 
 ---

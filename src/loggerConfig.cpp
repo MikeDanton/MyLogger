@@ -1,11 +1,13 @@
 #include "loggerConfig.hpp"
 #include "logLevel.hpp"
+#include "logContext.hpp"
 #include <fstream>
 #include <sstream>
 #include <iostream>
 #include <filesystem>
 
 std::unordered_map<std::string, std::string> LoggerConfig::config;
+std::unordered_set<LogContext> LoggerConfig::enabledContexts;  // ✅ Stores enabled contexts
 
 void LoggerConfig::loadConfig(const std::string& filepath) {
     if (!std::filesystem::exists(filepath)) {
@@ -28,6 +30,15 @@ void LoggerConfig::loadConfig(const std::string& filepath) {
             config[key] = value;
         }
     }
+
+    // ✅ Parse enabled contexts
+    if (config.contains("enabled_contexts")) {
+        std::istringstream contextStream(config["enabled_contexts"]);
+        std::string token;
+        while (std::getline(contextStream, token, ',')) {
+            enabledContexts.insert(logContextFromString(token));
+        }
+    }
 }
 
 void LoggerConfig::saveConfig(const std::string& filepath) {
@@ -43,9 +54,12 @@ void LoggerConfig::saveConfig(const std::string& filepath) {
     file << "log_rotation_days=7\n";
     file << "enable_console=true\n";
     file << "enable_file=true\n";
-    file << "enable_colors=false\n";  // 🔹 Default color mode off
+    file << "enable_colors=false\n";
     file << "flush_mode=auto\n";
     file << "log_level=INFO\n";
+
+    // ✅ Default context settings
+    file << "enabled_contexts=GENERAL,NETWORK,UI\n";
 
     file << "info_color=32\n";   // Green
     file << "warn_color=33\n";   // Yellow
@@ -65,6 +79,10 @@ std::string LoggerConfig::getColorForLevel(LogLevel level) {
     }
 
     return config.contains(key) ? "\033[" + config[key] + "m" : logLevelColor(level);
+}
+
+bool LoggerConfig::isContextEnabled(LogContext context) {
+    return enabledContexts.contains(context);
 }
 
 // Accessors
