@@ -1,5 +1,8 @@
-//
-// Created by BoboBaggins on 2/9/25.
-//
-
 #include "fileBackend.hpp"
+
+// File Backend Implementation
+FileBackend::FileBackend(const std::string& filename) : logFile(filename, std::ios::app) {}
+
+void FileBackend::write(const std::string& message) {
+    logFile << message;
+}

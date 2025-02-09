@@ -1,7 +1,9 @@
 #include "logger.hpp"
+#include "consoleBackend.hpp"
+#include "fileBackend.hpp"
 #include <format>
 
-Logger::Logger() : exitFlag(false), minLogLevel(LogLevel::INFO) {  // ✅ Default: log everything
+Logger::Logger() : exitFlag(false), minLogLevel(LogLevel::INFO) {
     backends.push_back(std::make_unique<ConsoleBackend>());
     logThread = std::thread(&Logger::processQueue, this);
 }

@@ -1,8 +1,13 @@
-//
-// Created by BoboBaggins on 2/9/25.
-//
+#ifndef CONSOLE_BACKEND_HPP
+#define CONSOLE_BACKEND_HPP
 
-#ifndef CONSOLEBACKEND_HPP
-#define CONSOLEBACKEND_HPP
+#include "logBackend.hpp"
+#include <iostream>
 
-#endif //CONSOLEBACKEND_HPP
+// Console Logging Backend
+class ConsoleBackend : public LogBackend {
+public:
+    void write(const std::string& message) override;
+};
+
+#endif // CONSOLE_BACKEND_HPP

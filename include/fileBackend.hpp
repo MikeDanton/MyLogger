@@ -1,8 +1,18 @@
-//
-// Created by BoboBaggins on 2/9/25.
-//
+#ifndef FILE_BACKEND_HPP
+#define FILE_BACKEND_HPP
 
-#ifndef FILEBACKEND_HPP
-#define FILEBACKEND_HPP
+#include "logBackend.hpp"
+#include <fstream>
+#include <string>
 
-#endif //FILEBACKEND_HPP
+// File Logging Backend
+class FileBackend : public LogBackend {
+public:
+    explicit FileBackend(const std::string& filename);
+    void write(const std::string& message) override;
+
+private:
+    std::ofstream logFile;
+};
+
+#endif // FILE_BACKEND_HPP
