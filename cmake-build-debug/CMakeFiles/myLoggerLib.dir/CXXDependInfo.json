@@ -1,0 +1,21 @@
+{
+	"bmi-installation" : null,
+	"compiler-frontend-variant" : "GNU",
+	"compiler-id" : "GNU",
+	"compiler-simulate-id" : "",
+	"config" : "Debug",
+	"cxx-modules" : {},
+	"dir-cur-bld" : "/home/BoboBaggins/CLionProjects/myLogger/cmake-build-debug",
+	"dir-cur-src" : "/home/BoboBaggins/CLionProjects/myLogger",
+	"dir-top-bld" : "/home/BoboBaggins/CLionProjects/myLogger/cmake-build-debug",
+	"dir-top-src" : "/home/BoboBaggins/CLionProjects/myLogger",
+	"exports" : [],
+	"forward-modules-from-target-dirs" : [],
+	"include-dirs" : 
+	[
+		"/home/BoboBaggins/CLionProjects/myLogger/include"
+	],
+	"language" : "CXX",
+	"linked-target-dirs" : [],
+	"module-dir" : "/home/BoboBaggins/CLionProjects/myLogger/cmake-build-debug/CMakeFiles/myLoggerLib.dir"
+}

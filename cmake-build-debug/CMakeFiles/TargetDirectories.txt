@@ -1,0 +1,6 @@
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-debug/CMakeFiles/myLoggerLib.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-debug/CMakeFiles/myLoggerApp.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-debug/CMakeFiles/myLoggerTests.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-debug/CMakeFiles/test.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-debug/CMakeFiles/rebuild_cache.dir

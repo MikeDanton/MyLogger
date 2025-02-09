@@ -1,0 +1,29 @@
+[2025-02-09 08:38:04] [INFO] Starting Task Manager...
+[2025-02-09 08:38:04] [DEBUG] Logger successfully configured from config file.
+[2025-02-09 08:38:12] [INFO] Starting automated simulation...
+[2025-02-09 08:38:12] [INFO] Added task: Buy groceries
+[2025-02-09 08:38:12] [INFO] Added task: Complete project
+[2025-02-09 08:38:13] [INFO] Listing tasks:
+[2025-02-09 08:38:13] [INFO] 1. Buy groceries
+[2025-02-09 08:38:13] [INFO] 2. Complete project
+[2025-02-09 08:38:13] [INFO] Removed task: Buy groceries
+[2025-02-09 08:38:14] [INFO] Listing tasks:
+[2025-02-09 08:38:14] [INFO] 1. Complete project
+[2025-02-09 08:38:14] [ERROR] Invalid task number: 10
+[2025-02-09 08:38:15] [INFO] Removed task: Complete project
+[2025-02-09 08:38:15] [WARN] No tasks available.
+[2025-02-09 08:38:16] [INFO] Simulation completed.
+[2025-02-09 08:38:18] [INFO] Starting automated simulation...
+[2025-02-09 08:38:18] [INFO] Added task: Buy groceries
+[2025-02-09 08:38:18] [INFO] Added task: Complete project
+[2025-02-09 08:38:19] [INFO] Listing tasks:
+[2025-02-09 08:38:19] [INFO] 1. Buy groceries
+[2025-02-09 08:38:19] [INFO] 2. Complete project
+[2025-02-09 08:38:19] [INFO] Removed task: Buy groceries
+[2025-02-09 08:38:20] [INFO] Listing tasks:
+[2025-02-09 08:38:20] [INFO] 1. Complete project
+[2025-02-09 08:38:20] [ERROR] Invalid task number: 10
+[2025-02-09 08:38:21] [INFO] Removed task: Complete project
+[2025-02-09 08:38:21] [WARN] No tasks available.
+[2025-02-09 08:38:22] [INFO] Simulation completed.
+[2025-02-09 08:38:24] [INFO] Task Manager session ended.

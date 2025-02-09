@@ -1,0 +1,5 @@
+ninja_dyndep_version = 1.0
+build CMakeFiles/myLoggerApp.dir/demo/main.cpp.o: dyndep
+
+build CMakeFiles/myLoggerApp.dir/demo/taskManager.cpp.o: dyndep
+
