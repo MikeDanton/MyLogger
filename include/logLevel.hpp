@@ -2,6 +2,7 @@
 #define LOG_LEVEL_HPP
 
 #include <string>
+#include <iostream>
 
 enum class LogLevel { INFO, WARN, ERROR, DEBUG };
 
@@ -15,7 +16,6 @@ inline std::string to_string(LogLevel level) {
     }
 }
 
-// 🔹 Define ANSI color codes (color handling should be in ConsoleBackend)
 inline std::string logLevelColor(LogLevel level) {
     switch (level) {
     case LogLevel::INFO: return "\033[32m";  // Green
@@ -32,6 +32,10 @@ inline LogLevel logLevelFromString(const std::string& levelStr) {
     if (levelStr == "ERROR") return LogLevel::ERROR;
     if (levelStr == "DEBUG") return LogLevel::DEBUG;
     return LogLevel::INFO;  // Default if unknown
+}
+
+inline std::ostream& operator<<(std::ostream& os, LogLevel level) {
+    return os << to_string(level);
 }
 
 #endif // LOG_LEVEL_HPP

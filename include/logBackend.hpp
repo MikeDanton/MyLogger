@@ -7,7 +7,9 @@
 class LogBackend {
 public:
     virtual ~LogBackend() = default;
+
     virtual void write(const LogMessage& message) = 0;
+    virtual void flush() {}
 };
 
 #endif // LOG_BACKEND_HPP

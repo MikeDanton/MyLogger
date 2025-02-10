@@ -1,13 +1,9 @@
 #include "fileBackend.hpp"
-#include "loggerConfig.hpp"
-#include <ctime>
-#include <iostream>
-#include <sstream>
-#include <iomanip>
+#include "loggerSettings.hpp"
 #include <filesystem>
-#include <chrono>
+#include <iostream>
 
-// ✅ Default constructor calls `generateLogFilePath()`
+// ✅ Default constructor
 FileBackend::FileBackend() : FileBackend(generateLogFilePath()) {}
 
 FileBackend::FileBackend(const std::string& filename) : filename(filename) {
@@ -21,40 +17,30 @@ FileBackend::FileBackend(const std::string& filename) : filename(filename) {
 void FileBackend::write(const LogMessage& logMessage) {
     if (!logFile.is_open()) return;
 
-    // ✅ Get current timestamp
-    auto now = std::chrono::system_clock::now();
-    std::time_t now_time = std::chrono::system_clock::to_time_t(now);
-    std::tm localTime{};
-#ifdef _WIN32
-    localtime_s(&localTime, &now_time);
-#else
-    localtime_r(&now_time, &localTime);
-#endif
-
     std::ostringstream oss;
-    oss << "[" << (localTime.tm_year + 1900) << "-"
-        << std::setw(2) << std::setfill('0') << (localTime.tm_mon + 1) << "-"
-        << std::setw(2) << std::setfill('0') << localTime.tm_mday << " "
-        << std::setw(2) << std::setfill('0') << localTime.tm_hour << ":"
-        << std::setw(2) << std::setfill('0') << localTime.tm_min << ":"
-        << std::setw(2) << std::setfill('0') << localTime.tm_sec << "] ";
+    oss << "[" << to_string(logMessage.level) << "] "
+        << "[" << logMessage.context << "] "  // ✅ Ensure it's a string
+        << logMessage.message << "\n";
 
-    // ✅ Write log entry
-    logFile << oss.str() << "[" << to_string(logMessage.level) << "] "
-            << "[" << to_string(logMessage.context) << "] "
-            << logMessage.message << "\n";
+    logFile << oss.str();
+}
+
+void FileBackend::FileBackend::flush() {
+    if (logFile.is_open()) {
+        logFile.flush();
+    }
 }
 
 void FileBackend::ensureLogDirectoryExists() {
-    std::string logDir = LoggerConfig::getLogDirectory();
+    std::string logDir = LoggerSettings::getInstance().getGlobalSetting("log_directory");
     if (!std::filesystem::exists(logDir)) {
         std::filesystem::create_directories(logDir);
     }
 }
 
 std::string FileBackend::generateLogFilePath() {
-    std::string logDir = LoggerConfig::getLogDirectory();
-    std::string filenamePattern = LoggerConfig::getLogFilenameFormat(); // "log_%Y-%m-%d_%H-%M-%S.txt"
+    std::string logDir = LoggerSettings::getInstance().getGlobalSetting("log_directory");
+    std::string filenamePattern = LoggerSettings::getInstance().getGlobalSetting("log_filename_format");
 
     // Ensure log directory exists
     std::filesystem::create_directories(logDir);
@@ -69,7 +55,6 @@ std::string FileBackend::generateLogFilePath() {
     localtime_r(&now_time, &localTime);
 #endif
 
-    // Use `std::put_time` for formatting the filename pattern
     std::ostringstream oss;
     oss << logDir << std::put_time(&localTime, filenamePattern.c_str());
 
@@ -79,7 +64,7 @@ std::string FileBackend::generateLogFilePath() {
 void FileBackend::cleanOldLogs(int days) {
     namespace fs = std::filesystem;
     auto now = std::chrono::system_clock::now();
-    std::string logDir = LoggerConfig::getLogDirectory();
+    std::string logDir = LoggerSettings::getInstance().getGlobalSetting("log_directory");
 
     for (const auto& entry : fs::directory_iterator(logDir)) {
         if (entry.is_regular_file() && entry.path().extension() == ".txt") {
@@ -93,8 +78,4 @@ void FileBackend::cleanOldLogs(int days) {
             }
         }
     }
-}
-
-std::string FileBackend::getFilename() const {
-    return filename;
 }

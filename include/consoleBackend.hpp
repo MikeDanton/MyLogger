@@ -10,6 +10,7 @@
 class ConsoleBackend : public LogBackend {
 public:
     void write(const LogMessage& logMessage) override;
+    void flush() override;
 };
 
 #endif // CONSOLE_BACKEND_HPP

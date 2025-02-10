@@ -113,8 +113,124 @@ make
 
 ---
 
+### **📚 Class Hierarchy**
+
+<details>
+<summary>🔹 **High-Level Overview** (Click to Expand)</summary>
+
+```mermaid
+classDiagram
+    class LoggerManager {
+        +getInstance() : Logger&
+    }
+    class Logger {
+        +log(LogLevel, message)
+        +flush()
+    }
+    class LogBackend
+    class ConsoleBackend
+    class FileBackend
+
+    LoggerManager --> Logger
+    Logger --> LogBackend
+    LogBackend <|-- ConsoleBackend
+    LogBackend <|-- FileBackend
+```
+</details>
+
+---
+
+<details>
+<summary>🔹 **LoggerManager - Global Access & Configuration**</summary>
+
+```mermaid
+classDiagram
+    class LoggerManager {
+        +getInstance() : Logger&
+        -LoggerManager()
+    }
+    class Logger
+    LoggerManager --> Logger
+```
+
+👉 **Singleton Pattern**: Ensures a single `LoggerManager` instance  
+👉 **Auto Configuration**: Loads settings automatically  
+👉 **Central Access**: Provides global logging access
+</details>
+
+---
+
+<details>
+<summary>🔹 **Logger - Core Logging System**</summary>
+
+```mermaid
+classDiagram
+    class Logger {
+        +log(LogLevel, message)
+        +log(LogLevel, LogContext, message)
+        +addBackend(LogBackend)
+        +flush()
+    }
+    class LogBackend
+    Logger --> LogBackend
+```
+
+👉 **Asynchronous Logging**: Runs in a background thread  
+👉 **Multiple Backends**: Supports **console + file logging**  
+👉 **Structured Logging**: Uses `LogMessage` for log entries
+</details>
+
+---
+
+<details>
+<summary>🔹 **Log Backends - Console & File Logging**</summary>
+
+```mermaid
+classDiagram
+    class LogBackend {
+        <<interface>>
+        +logMessage(LogMessage)
+        +flush()
+    }
+    class ConsoleBackend
+    class FileBackend
+
+    LogBackend <|-- ConsoleBackend
+    LogBackend <|-- FileBackend
+```
+
+👉 **Extensible Backend System**  
+👉 **Supports Console & File Logging Simultaneously**  
+👉 **Easily Add More Log Destinations** (e.g., database, network)
+</details>
+
+---
+
+<details>
+<summary>🔹 **Log Message & Context**</summary>
+
+```mermaid
+classDiagram
+    class LogMessage {
+        +timestamp: std::string
+        +level: LogLevel
+        +context: LogContext
+        +message: std::string
+    }
+    class LogContext {
+        +name: std::string
+    }
+
+    LogMessage --> LogContext
+```
+
+👉 **Encapsulated Log Entries**: Stores metadata (timestamp, level, context, message)  
+👉 **Flexible Context Handling**: Enables categorization of logs
+</details>
+
+---
+
 🤯 **Author**: @BoboBaggins  
 👤 **License**: MIT
 
 🔥 **Contributions Welcome!** 🚀
-

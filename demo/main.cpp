@@ -1,10 +1,9 @@
 #include "loggerManager.hpp"
-#include "taskManager.hpp"  // Refactored TaskManager into its own file
+#include "taskManager.hpp"
 #include <iostream>
-#include <thread>
 #include <chrono>
+#include <loggerSettings.hpp>
 
-// Function to simulate real user input and logging behavior
 void interactiveSession(TaskManager& taskManager) {
     while (true) {
         std::cout << "\n=== Task Manager ===\n";
@@ -29,7 +28,7 @@ void interactiveSession(TaskManager& taskManager) {
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             taskManager.removeTask(index);
         } else if (choice == 4) {
-            taskManager.runSimulation();  // Runs automated logging simulation
+            taskManager.runSimulation();
         } else if (choice == 5) {
             std::cout << "Exiting Task Manager.\n";
             break;
@@ -39,14 +38,37 @@ void interactiveSession(TaskManager& taskManager) {
     }
 }
 
+void logTestMessages(Logger& logger) {
+    logger.log(LogLevel::INFO, "Starting log test...");
+
+    // ✅ Fetch dynamically configured contexts
+    std::vector<std::string> contextNames = LoggerSettings::getInstance().getConfiguredContexts();
+
+    for (const auto& contextName : contextNames) {
+        std::string levelStr = LoggerSettings::getInstance().getContextLogLevel(contextName);
+        LogLevel level = logLevelFromString(levelStr);
+
+        logger.log(level, contextName, "Test message"); // ✅ Now correctly logging contexts
+    }
+
+    logger.log(LogLevel::INFO, "Log test complete.");
+}
+
 int main() {
-    // ✅ No need to manually configure the logger
     Logger& logger = LoggerManager::getInstance();
+
     logger.log(LogLevel::INFO, "Task Manager starting...");
+
+    logTestMessages(logger);
 
     TaskManager taskManager(logger);
     interactiveSession(taskManager);
 
     logger.log(LogLevel::INFO, "Task Manager session ended.");
+
+    // ✅ Ensure logs are written before exiting
+    logger.flush();
+
     return 0;
 }
+
