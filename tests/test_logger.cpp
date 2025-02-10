@@ -7,9 +7,8 @@
 // Mock backend for testing
 class TestBackend : public LogBackend {
 public:
-    std::ostringstream logStream;
-    void write(const std::string& message) override {
-        logStream << message;
+    void write(const LogMessage& message) override {  // ✅ Correct method signature
+        std::cout << "TestBackend: " << message.content << std::endl;
     }
 };
 

@@ -11,6 +11,7 @@ class LoggerConfig {
 public:
     static void loadConfig(const std::string& filepath);
     static void saveConfig(const std::string& filepath);
+    static void generateDefaultConfig(const std::string& filepath);
 
     static std::string getColorForLog(LogLevel level, LogContext context);
     static bool isContextEnabled(LogContext context);
@@ -31,6 +32,8 @@ private:
     static std::unordered_set<LogContext> enabledContexts;
 
     static std::string trim(const std::string& str);
+
+    static const std::string defaultConfig;
 };
 
 #endif // LOGGER_CONFIG_HPP

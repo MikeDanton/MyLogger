@@ -4,41 +4,50 @@
 #include "consoleBackend.hpp"
 #include "fileBackend.hpp"
 #include <memory>
+#include <filesystem>
 
-// ✅ Singleton Logger instance
+// ✅ Singleton Logger instance (auto-configured on first use)
 Logger& LoggerManager::getInstance() {
     static std::unique_ptr<Logger> globalLogger = std::make_unique<Logger>();
+    static bool initialized = false;
+
+    if (!initialized) {
+        initialized = true;  // ✅ Ensure it's set first
+        initialize(*globalLogger);  // ✅ Pass reference to logger
+    }
+
     return *globalLogger;
 }
 
-// ✅ Configure Logger from config file (auto-loads or creates default)
-void LoggerManager::configureFromConfig(const std::string& configPath) {
-    LoggerConfig::loadConfig(configPath);  // 🔹 Loads existing config or generates default
+// ✅ Auto-initialization logic (ensures config file is created)
+void LoggerManager::initialize(Logger& logger) {
+    const std::string configPath = "logger.conf";
+
+    // 🔹 If config file doesn’t exist, generate default
+    LoggerConfig::generateDefaultConfig(configPath);
+
+    // 🔹 Load config (even if just created)
+    LoggerConfig::loadConfig(configPath);
 
     bool useConsole = LoggerConfig::isConsoleEnabled();
     bool useFile = LoggerConfig::isFileEnabled();
     LogLevel level = logLevelFromString(LoggerConfig::getLogLevel());
 
-    configure(useConsole, useFile, level);
-}
-
-void LoggerManager::configure(bool useConsole, bool useFile, LogLevel level) {
-    Logger& logger = getInstance();
+    // ✅ Directly modify the existing logger instead of calling `getInstance()`
     logger.setLogLevel(level);
 
-    if (useConsole && !hasBackend<ConsoleBackend>()) {
+    if (useConsole && !hasBackend<ConsoleBackend>(logger)) {
         logger.addBackend(std::make_unique<ConsoleBackend>());
     }
 
-    if (useFile && !hasBackend<FileBackend>()) {
+    if (useFile && !hasBackend<FileBackend>(logger)) {
         logger.addBackend(std::make_unique<FileBackend>());
     }
 }
 
-// ✅ Check if backend of a given type is already added
-template <typename T, typename... Args>
-bool LoggerManager::hasBackend(Args&&... args) {
-    Logger& logger = getInstance();
+// ✅ Check if a backend already exists (avoid recursion)
+template <typename T>
+bool LoggerManager::hasBackend(Logger& logger) {
     for (const auto& backend : logger.getBackends()) {
         if (dynamic_cast<T*>(backend.get())) {
             return true;

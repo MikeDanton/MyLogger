@@ -54,8 +54,6 @@ void Logger::addBackend(std::unique_ptr<LogBackend> backend) {
 
 void Logger::log(LogLevel level, LogContext context, const std::string& message) {
     if (level < minLogLevel || !LoggerConfig::isContextEnabled(context)) {
-        std::cerr << "[DEBUG] Skipping log: " << to_string(level) << " ["
-                  << to_string(context) << "] " << message << "\n";
         return;
     }
 

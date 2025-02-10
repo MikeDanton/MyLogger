@@ -6,6 +6,7 @@
 
 ## 📌 Features
 
+👉 **Automatic Configuration** - No manual setup needed, loads from `logger.conf` or creates a default one.  
 👉 **Asynchronous Logging** - Logs run in a background thread.  
 👉 **Multiple Backends** - Supports **Console + File Logging Simultaneously**.  
 👉 **Log Level Filtering** - Set **INFO, WARN, ERROR, or DEBUG** log levels.  
@@ -13,7 +14,7 @@
 👉 **Timestamped Log Entries** - Every log message includes a precise timestamp.  
 👉 **Timestamped Log Files** - Each session creates a new log file.  
 👉 **Automatic Log Cleanup** - Removes logs older than a configurable threshold.  
-👉 **LoggerManager for Simplified Setup** - Easy global logger access and configuration.  
+👉 **LoggerManager for Simplified Setup** - Auto-configured on first use.  
 👉 **Colored Console Output** - Logs appear in different colors based on **log level or context**.  
 👉 **Benchmarking Support** - Performance tests for logging efficiency and config loading speed.  
 👉 **Structured Log Messages** - Uses `LogMessage` struct for better log management.  
@@ -21,53 +22,19 @@
 
 ---
 
-## 📂 Project Structure
-```
-/myLogger/
-│── include/
-│   ├── loggerLib.hpp          <-- Public API (Single Include)
-│   ├── logger.hpp             <-- Core Logger
-│   ├── loggerManager.hpp      <-- LoggerManager for Simplified Setup
-│   ├── logLevel.hpp           <-- Log Level Enums
-│   ├── logContext.hpp         <-- Log Context Enums
-│   ├── logBackend.hpp         <-- Backend Interface
-│   ├── consoleBackend.hpp     <-- Console Logger
-│   ├── fileBackend.hpp        <-- File Logger
-│   ├── logMessage.hpp         <-- Structured Log Message
-│   ├── loggerConfig.hpp
-│
-│── src/
-│   ├── logger.cpp
-│   ├── loggerManager.cpp      <-- LoggerManager Implementation
-│   ├── consoleBackend.cpp
-│   ├── fileBackend.cpp
-│   ├── loggerConfig.cpp
-│
-│── demo/                      <-- Example applications
-│   ├── main.cpp               <-- Uses Logger & TaskManager
-│   ├── taskManager.hpp        <-- Example task manager using logging
-│   ├── taskManager.cpp
-│
-│── tests/                     <-- Unit tests for correctness
-│   ├── test_logger.cpp
-│
-│── benchmarks/                <-- Performance benchmarks
-│   ├── benchmark_logger.cpp   <-- Logging throughput, latency tests
-│   ├── benchmark_config.cpp   <-- Config file loading performance
-│
-│── CMakeLists.txt
-│── README.md
-```
-
----
-
 ## 📚 Public Interface
-### 1️⃣ Logger Class
+### 1⃣ Logger Usage (Automatic Configuration)
 ```cpp
-#include "loggerLib.hpp"
-Logger logger;
+#include "loggerManager.hpp"
+
+int main() {
+    Logger& logger = LoggerManager::getInstance();
+    logger.log(LogLevel::INFO, "Application started");
+    return 0;
+}
 ```
-#### 📝 Methods
+
+#### 🛠 Methods
 ```cpp
 void addBackend(std::unique_ptr<LogBackend> backend);
 void setLogLevel(LogLevel level);
@@ -76,37 +43,25 @@ void log(LogLevel level, LogContext context, const std::string& message);
 void flush();
 ```
 
-#### 🛠 Example Usage
-```cpp
-Logger logger;
-logger.addBackend(std::make_unique<ConsoleBackend>());
-logger.addBackend(std::make_unique<FileBackend>());  // ✅ Uses timestamped filename
-
-logger.setLogLevel(LogLevel::WARN);
-logger.log(LogLevel::INFO, "This won't be logged due to filtering");
-logger.log(LogLevel::ERROR, "Critical failure!");
-```
-
 ---
 
-### 2️⃣ LoggerManager for Easy Setup
+### 2⃣ LoggerManager for Global Access
 ```cpp
 #include "loggerManager.hpp"
-LoggerManager::configure(true, true, LogLevel::INFO);
 Logger& logger = LoggerManager::getInstance();
-logger.log(LogLevel::INFO, "Application started");
+logger.log(LogLevel::INFO, "Task started");
 ```
 
 ---
 
-### 3️⃣ Available Log Levels
+### 3⃣ Available Log Levels
 ```cpp
 enum class LogLevel { INFO, WARN, ERROR, DEBUG };
 ```
-✅ **INFO** → Logs everything, non-debug related.  
-✅ **WARN** → Logs `WARN` and `ERROR`.  
-✅ **ERROR** → Logs only `ERROR`.  
-✅ **DEBUG** → Most detailed logs for debugging purposes.
+👉 **INFO** → Logs everything, non-debug related.  
+👉 **WARN** → Logs `WARN` and `ERROR`.  
+👉 **ERROR** → Logs only `ERROR`.  
+👉 **DEBUG** → Most detailed logs for debugging purposes.
 
 ---
 
@@ -126,7 +81,7 @@ Benchmark                      Time             CPU   Iterations
 ----------------------------------------------------------------
 BM_LoggingPerformance       2252 ns         2175 ns       337001
 ```
-✅ **Optimized for high-speed logging with minimal overhead.**
+👉 **Optimized for high-speed logging with minimal overhead.**
 
 #### Config File Loading Performance:
 ```
@@ -135,7 +90,7 @@ Benchmark              Time             CPU   Iterations
 --------------------------------------------------------
 BM_LoadConfig       3823 ns         3805 ns       182955
 ```
-✅ **Efficient config file parsing and automatic loading.**
+👉 **Efficient config file parsing and automatic loading.**
 
 ---
 
@@ -150,13 +105,15 @@ make
 ---
 
 ## 📌 Next Steps
+- ✅ **[ ] Custom context names**
+- ✅ **[ ] Hot reload**
 - ✅ **[ ] Improve Log Rotation (Compress Old Logs)**
 - ✅ **[ ] Expand LoggerManager for More Configurations**
 - ✅ **[ ] Further optimize logging throughput and reduce latency**
 
 ---
 
-🤦 **Author**: @BoboBaggins  
+🤯 **Author**: @BoboBaggins  
 👤 **License**: MIT
 
 🔥 **Contributions Welcome!** 🚀

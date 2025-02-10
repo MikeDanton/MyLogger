@@ -2,13 +2,67 @@
 #include "logLevel.hpp"
 #include "logContext.hpp"
 #include <fstream>
-#include <sstream>
 #include <iostream>
 #include <filesystem>
 #include <algorithm>
 
+// Define default config as a static constant string
+const std::string LoggerConfig::defaultConfig = R"(
+# Logger Configuration File
+log_directory=logs/
+log_filename_format=log_%Y-%m-%d_%H-%M-%S.txt
+log_rotation_days=7
+enable_console=true
+enable_file=true
+enable_colors=true
+flush_mode=auto
+log_level=INFO
+color_priority=level
+
+enabled_contexts=GENERAL,NETWORK,UI
+
+info_color=32
+warn_color=33
+error_color=31
+debug_color=36
+
+context_general_color=37
+context_network_color=34
+context_database_color=35
+context_ui_color=36
+context_audio_color=33
+context_rendering_color=31
+)";
+
 std::unordered_map<std::string, std::string> LoggerConfig::config;
 std::unordered_set<LogContext> LoggerConfig::enabledContexts;
+
+// ✅ Auto-generate config file if missing
+void LoggerConfig::generateDefaultConfig(const std::string& filepath) {
+    if (std::filesystem::exists(filepath)) {
+        return;  // ✅ Config already exists, no need to generate it
+    }
+
+    std::ofstream file(filepath);
+    if (!file) {
+        std::cerr << "[ERROR] Could not create default config file: " << filepath << "\n";
+        return;
+    }
+
+    std::cerr << "[INFO] Generating default config file: " << filepath << "\n";
+    file << defaultConfig;
+}
+
+// ✅ Save config (overwrites with defaults)
+void LoggerConfig::saveConfig(const std::string& filepath) {
+    std::ofstream file(filepath);
+    if (!file) {
+        std::cerr << "[ERROR] Could not save config file.\n";
+        return;
+    }
+
+    file << defaultConfig;
+}
 
 void LoggerConfig::loadConfig(const std::string& filepath) {
     if (!std::filesystem::exists(filepath)) {
@@ -48,39 +102,6 @@ void LoggerConfig::loadConfig(const std::string& filepath) {
     if (!config.contains("color_priority")) {
         config["color_priority"] = "level"; // Default to level-based coloring
     }
-}
-
-void LoggerConfig::saveConfig(const std::string& filepath) {
-    std::ofstream file(filepath);
-    if (!file) {
-        std::cerr << "[ERROR] Could not create default config file.\n";
-        return;
-    }
-
-    file << "# Logger Configuration File\n";
-    file << "log_directory=logs/\n";
-    file << "log_filename_format=log_%Y-%m-%d_%H-%M-%S.txt\n";
-    file << "log_rotation_days=7\n";
-    file << "enable_console=true\n";
-    file << "enable_file=true\n";
-    file << "enable_colors=true\n";
-    file << "flush_mode=auto\n";
-    file << "log_level=INFO\n";
-    file << "color_priority=level\n";  // Default to level-based colors
-
-    file << "enabled_contexts=GENERAL,NETWORK,UI\n";
-
-    file << "info_color=32\n";   // Green
-    file << "warn_color=33\n";   // Yellow
-    file << "error_color=31\n";  // Red
-    file << "debug_color=36\n";  // Cyan
-
-    file << "context_general_color=37\n";    // White
-    file << "context_network_color=34\n";    // Blue
-    file << "context_database_color=35\n";   // Magenta
-    file << "context_ui_color=36\n";         // Cyan
-    file << "context_audio_color=33\n";      // Yellow
-    file << "context_rendering_color=31\n";  // Red
 }
 
 std::string LoggerConfig::getColorPriority() {
