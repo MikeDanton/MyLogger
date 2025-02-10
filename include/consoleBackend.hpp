@@ -2,14 +2,14 @@
 #define CONSOLE_BACKEND_HPP
 
 #include "logBackend.hpp"
-#include "logLevel.hpp"
+#include "logMessage.hpp"
+#include "loggerConfig.hpp"
 #include <iostream>
 
 // Console Logging Backend
 class ConsoleBackend : public LogBackend {
 public:
-    void write(const std::string& message) override;  // Overrides base class
-    void write(const std::string& message, LogLevel level);  // Overloaded version for colored text
+    void write(const LogMessage& logMessage) override;
 };
 
 #endif // CONSOLE_BACKEND_HPP

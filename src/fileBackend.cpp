@@ -10,7 +10,6 @@
 // ✅ Default constructor calls `generateLogFilePath()`
 FileBackend::FileBackend() : FileBackend(generateLogFilePath()) {}
 
-
 FileBackend::FileBackend(const std::string& filename) : filename(filename) {
     ensureLogDirectoryExists();
     logFile.open(filename, std::ios::app);
@@ -19,10 +18,31 @@ FileBackend::FileBackend(const std::string& filename) : filename(filename) {
     }
 }
 
-void FileBackend::write(const std::string& message) {
-    if (logFile.is_open()) {
-        logFile << message;
-    }
+void FileBackend::write(const LogMessage& logMessage) {
+    if (!logFile.is_open()) return;
+
+    // ✅ Get current timestamp
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+    std::tm localTime{};
+#ifdef _WIN32
+    localtime_s(&localTime, &now_time);
+#else
+    localtime_r(&now_time, &localTime);
+#endif
+
+    std::ostringstream oss;
+    oss << "[" << (localTime.tm_year + 1900) << "-"
+        << std::setw(2) << std::setfill('0') << (localTime.tm_mon + 1) << "-"
+        << std::setw(2) << std::setfill('0') << localTime.tm_mday << " "
+        << std::setw(2) << std::setfill('0') << localTime.tm_hour << ":"
+        << std::setw(2) << std::setfill('0') << localTime.tm_min << ":"
+        << std::setw(2) << std::setfill('0') << localTime.tm_sec << "] ";
+
+    // ✅ Write log entry
+    logFile << oss.str() << "[" << to_string(logMessage.level) << "] "
+            << "[" << to_string(logMessage.context) << "] "
+            << logMessage.message << "\n";
 }
 
 void FileBackend::ensureLogDirectoryExists() {

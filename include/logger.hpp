@@ -4,6 +4,7 @@
 #include "logBackend.hpp"
 #include "logLevel.hpp"
 #include "logContext.hpp"
+#include "logMessage.hpp"
 #include <queue>
 #include <thread>
 #include <mutex>
@@ -27,7 +28,7 @@ public:
     [[nodiscard]] const std::vector<std::unique_ptr<LogBackend>>& getBackends() const;
 
 private:
-    std::queue<std::pair<LogLevel, std::string>> logQueue;
+    std::queue<LogMessage> logQueue;  // ✅ Now using LogMessage struct
     std::vector<std::unique_ptr<LogBackend>> backends;
     std::mutex mutex;
     std::condition_variable cv;

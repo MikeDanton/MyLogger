@@ -14,13 +14,13 @@ enum class LogContext {
 
 inline std::string to_string(LogContext context) {
     switch (context) {
-    case LogContext::GENERAL: return "GENERAL";
-    case LogContext::NETWORK: return "NETWORK";
-    case LogContext::DATABASE: return "DATABASE";
-    case LogContext::UI: return "UI";
-    case LogContext::AUDIO: return "AUDIO";
-    case LogContext::RENDERING: return "RENDERING";
-    default: return "UNKNOWN";
+    case LogContext::GENERAL: return "general";
+    case LogContext::NETWORK: return "network";
+    case LogContext::DATABASE: return "database";
+    case LogContext::UI: return "ui";
+    case LogContext::AUDIO: return "audio";
+    case LogContext::RENDERING: return "rendering";
+    default: return "unknown";
     }
 }
 

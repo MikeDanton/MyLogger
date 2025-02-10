@@ -53,17 +53,16 @@ void Logger::addBackend(std::unique_ptr<LogBackend> backend) {
 }
 
 void Logger::log(LogLevel level, LogContext context, const std::string& message) {
-    if (level < minLogLevel || !LoggerConfig::isContextEnabled(context)) return;
+    if (level < minLogLevel || !LoggerConfig::isContextEnabled(context)) {
+        std::cerr << "[DEBUG] Skipping log: " << to_string(level) << " ["
+                  << to_string(context) << "] " << message << "\n";
+        return;
+    }
 
-    std::string formattedMessage = std::format("{} [{}] [{}] {}\n",
-                                               getCurrentTimestamp(),
-                                               to_string(level),
-                                               to_string(context),
-                                               message);
-
+    LogMessage logMessage{level, context, message};
     {
         std::lock_guard<std::mutex> lock(mutex);
-        logQueue.emplace(level, formattedMessage);
+        logQueue.push(logMessage);
     }
     cv.notify_one();
 }
@@ -82,20 +81,16 @@ void Logger::processQueue() {
         std::unique_lock<std::mutex> lock(mutex);
         cv.wait(lock, [this] { return !logQueue.empty() || exitFlag; });
 
-        std::vector<std::pair<LogLevel, std::string>> logs;
+        std::vector<LogMessage> logs;
         while (!logQueue.empty()) {
             logs.push_back(std::move(logQueue.front()));
             logQueue.pop();
         }
         lock.unlock();
 
-        for (const auto& [level, message] : logs) {
+        for (const auto& logMessage : logs) {
             for (const auto& backend : backends) {
-                if (auto consoleBackend = dynamic_cast<ConsoleBackend*>(backend.get())) {
-                    consoleBackend->write(message, level);
-                } else {
-                    backend->write(message);
-                }
+                backend->write(logMessage);  // ✅ Now writing entire LogMessage struct
             }
         }
 

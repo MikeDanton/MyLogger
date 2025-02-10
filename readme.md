@@ -14,8 +14,9 @@
 👉 **Timestamped Log Files** - Each session creates a new log file.  
 👉 **Automatic Log Cleanup** - Removes logs older than a configurable threshold.  
 👉 **LoggerManager for Simplified Setup** - Easy global logger access and configuration.  
-👉 **Colored Console Output** - Logs appear in different colors for better readability.  
+👉 **Colored Console Output** - Logs appear in different colors based on **log level or context**.  
 👉 **Benchmarking Support** - Performance tests for logging efficiency and config loading speed.  
+👉 **Structured Log Messages** - Uses `LogMessage` struct for better log management.  
 👉 **Easy Integration** - Single public include `#include "loggerLib.hpp"`.
 
 ---
@@ -28,15 +29,19 @@
 │   ├── logger.hpp             <-- Core Logger
 │   ├── loggerManager.hpp      <-- LoggerManager for Simplified Setup
 │   ├── logLevel.hpp           <-- Log Level Enums
+│   ├── logContext.hpp         <-- Log Context Enums
 │   ├── logBackend.hpp         <-- Backend Interface
 │   ├── consoleBackend.hpp     <-- Console Logger
 │   ├── fileBackend.hpp        <-- File Logger
+│   ├── logMessage.hpp         <-- Structured Log Message
+│   ├── loggerConfig.hpp
 │
 │── src/
 │   ├── logger.cpp
 │   ├── loggerManager.cpp      <-- LoggerManager Implementation
 │   ├── consoleBackend.cpp
 │   ├── fileBackend.cpp
+│   ├── loggerConfig.cpp
 │
 │── demo/                      <-- Example applications
 │   ├── main.cpp               <-- Uses Logger & TaskManager
@@ -67,6 +72,7 @@ Logger logger;
 void addBackend(std::unique_ptr<LogBackend> backend);
 void setLogLevel(LogLevel level);
 void log(LogLevel level, const std::string& message);
+void log(LogLevel level, LogContext context, const std::string& message);
 void flush();
 ```
 
@@ -97,7 +103,7 @@ logger.log(LogLevel::INFO, "Application started");
 ```cpp
 enum class LogLevel { INFO, WARN, ERROR, DEBUG };
 ```
-✅ **INFO** → Logs everything.  
+✅ **INFO** → Logs everything, non-debug related.  
 ✅ **WARN** → Logs `WARN` and `ERROR`.  
 ✅ **ERROR** → Logs only `ERROR`.  
 ✅ **DEBUG** → Most detailed logs for debugging purposes.
@@ -144,10 +150,8 @@ make
 ---
 
 ## 📌 Next Steps
-- ✅ **[ ] Performance Benchmarking Under High Load**
 - ✅ **[ ] Improve Log Rotation (Compress Old Logs)**
 - ✅ **[ ] Expand LoggerManager for More Configurations**
-- ✅ **[ ] Implement Colored Console Logs for Better Readability**
 - ✅ **[ ] Further optimize logging throughput and reduce latency**
 
 ---

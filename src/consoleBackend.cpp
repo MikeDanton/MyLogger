@@ -1,15 +1,13 @@
 #include "consoleBackend.hpp"
 #include "loggerConfig.hpp"
-#include <iostream>
 
-void ConsoleBackend::write(const std::string& message) {
-    std::cout << message;
-}
+void ConsoleBackend::write(const LogMessage& logMessage) {
+    if (!LoggerConfig::isConsoleEnabled()) return;
 
-void ConsoleBackend::write(const std::string& message, LogLevel level) {
-    if (LoggerConfig::isColorEnabled()) {
-        std::cout << LoggerConfig::getColorForLevel(level) << message << "\033[0m";  // Apply color and reset
-    } else {
-        std::cout << message;
-    }
+    std::string color = LoggerConfig::getColorForLog(logMessage.level, logMessage.context);
+    std::string resetColor = "\033[0m";  // Reset terminal color
+
+    std::cout << color << "[" << to_string(logMessage.level) << "] "
+              << "[" << to_string(logMessage.context) << "] "
+              << logMessage.message << resetColor << std::endl;
 }
