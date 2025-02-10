@@ -5,18 +5,10 @@
 void ConsoleBackend::write(const LogMessage& logMessage) {
     if (!LoggerSettings::getInstance().isConsoleEnabled()) return;
 
-    std::string colorMode = LoggerSettings::getInstance().getGlobalSetting("color_mode");
-    std::string color;
+    std::string color = LoggerSettings::getInstance().getLogColor(logMessage.level, logMessage.context);
+    std::string resetColor = "\033[0m";
 
-    if (colorMode == "context") {
-        color = LoggerSettings::getInstance().getContextColor(logMessage.context);
-    } else {
-        color = LoggerSettings::getInstance().getColorSetting(to_string(logMessage.level));
-    }
-
-    std::string resetColor = "\033[0m";  // ✅ Reset terminal color after message
-
-    std::cout << color  // ✅ Apply color
+    std::cout << color
               << "[" << logMessage.level << "] "
               << "[" << logMessage.context << "] "
               << logMessage.message

@@ -1,7 +1,6 @@
 #include "loggerConfig.hpp"
 #include "loggerSettings.hpp"
 #include "stringUtils.hpp"
-
 #include <fstream>
 #include <iostream>
 #include <filesystem>
@@ -21,26 +20,28 @@ void LoggerConfig::loadConfig(const std::string& filepath) {
 
     std::string line;
     bool inContextSection = false;
-    bool inColorSection = false;
-    bool inContextColorSection = false;  // ✅ Added flag for context colors
+    bool inLevels = false;
+    bool inColors = false;
 
     while (std::getline(file, line)) {
         if (line.empty() || line[0] == '#') continue;
 
         if (line == "[CONTEXTS]") {
             inContextSection = true;
-            inColorSection = false;
-            inContextColorSection = false;
+            inLevels = false;
+            inColors = false;
             continue;
-        } else if (line == "[COLORS]") {
-            inColorSection = true;
+        }
+        if (line == "[LEVELS]") {
+            inLevels = true;
             inContextSection = false;
-            inContextColorSection = false;
+            inColors = false;
             continue;
-        } else if (line == "[CONTEXT_COLORS]") {  // ✅ Detect context colors
-            inContextColorSection = true;
+        }
+        if (line == "[LEVEL_COLORS]" || line == "[CONTEXT_COLORS]") {
+            inColors = true;
             inContextSection = false;
-            inColorSection = false;
+            inLevels = false;
             continue;
         }
 
@@ -52,10 +53,10 @@ void LoggerConfig::loadConfig(const std::string& filepath) {
 
             if (inContextSection) {
                 LoggerSettings::getInstance().setContextLogLevel(key, value);
-            } else if (inColorSection) {
-                LoggerSettings::getInstance().setColorSetting(key, value);
-            } else if (inContextColorSection) {  // ✅ Store context-based colors
-                LoggerSettings::getInstance().setContextColor(key, value);
+            } else if (inLevels) {
+                LoggerSettings::getInstance().setLogLevel(key, value);
+            } else if (inColors) {
+                LoggerSettings::getInstance().setLogColor(key, value);  // ✅ Unified color storage
             } else {
                 LoggerSettings::getInstance().setGlobalSetting(key, value);
             }
@@ -81,23 +82,28 @@ void LoggerConfig::generateDefaultConfig(const std::string& filepath) {
     file << "enable_file=true\n";
     file << "enable_colors=true\n";
     file << "flush_mode=auto\n";
-    file << "log_level=INFO\n";
-    file << "color_mode=level\n";  // ✅ Supports both "level" and "context"
+    file << "color_mode=level\n";
 
-    file << "[COLORS]\n";
-    file << "info_color=32\n";   // Green
-    file << "warn_color=33\n";   // Yellow
-    file << "error_color=31\n";  // Red
-    file << "debug_color=36\n";  // Cyan
+    file << "[LEVELS]\n";
+    file << "INFO=ON\n";
+    file << "WARN=ON\n";
+    file << "ERROR=ON\n";
+    file << "DEBUG=ON\n";
+    file << "VERBOSE=OFF\n";
 
-    // ✅ Add default context-based colors
+    file << "[LEVEL_COLORS]\n";
+    file << "INFO=32\n";
+    file << "WARN=33\n";
+    file << "ERROR=31\n";
+    file << "DEBUG=36\n";
+
     file << "[CONTEXT_COLORS]\n";
-    file << "context_GENERAL=37\n";    // White
-    file << "context_NETWORK=34\n";    // Blue
-    file << "context_DATABASE=35\n";   // Magenta
-    file << "context_UI=36\n";         // Cyan
-    file << "context_AUDIO=33\n";      // Yellow
-    file << "context_RENDERING=31\n";  // Red
+    file << "context_GENERAL=37\n";
+    file << "context_NETWORK=34\n";
+    file << "context_DATABASE=35\n";
+    file << "context_UI=36\n";
+    file << "context_AUDIO=33\n";
+    file << "context_RENDERING=31\n";
 
     file << "[CONTEXTS]\n";
     file << "GENERAL=INFO\n";
@@ -106,4 +112,5 @@ void LoggerConfig::generateDefaultConfig(const std::string& filepath) {
     file << "UI=INFO\n";
     file << "AUDIO=DEBUG\n";
     file << "RENDERING=WARN\n";
+    file << "UNKNOWN=WARN\n";
 }

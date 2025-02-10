@@ -1,13 +1,11 @@
 #include "loggerManager.hpp"
 #include "loggerConfig.hpp"
 #include "loggerSettings.hpp"
-#include "logLevel.hpp"
 #include "consoleBackend.hpp"
 #include "fileBackend.hpp"
 #include <memory>
 #include <filesystem>
 
-// ✅ Singleton Logger instance (auto-configured on first use)
 Logger& LoggerManager::getInstance() {
     static std::unique_ptr<Logger> globalLogger = std::make_unique<Logger>();
     static bool initialized = false;
@@ -24,12 +22,13 @@ void LoggerManager::initialize(Logger& logger) {
     const std::string configPath = "logger.conf";
 
     LoggerSettings::getInstance();  // ✅ Ensure settings are initialized first
-    LoggerConfig::generateDefaultConfig(configPath);
     LoggerConfig::loadConfig(configPath);
 
     bool useConsole = LoggerSettings::getInstance().isConsoleEnabled();
     bool useFile = LoggerSettings::getInstance().isFileEnabled();
-    LogLevel level = logLevelFromString(LoggerSettings::getInstance().getLogLevel());
+
+    // 🔥 Fix: No longer using `getLogLevel()`
+    std::string level = LoggerSettings::getInstance().getContextLogLevel("GENERAL");
 
     logger.setLogLevel(level);
 

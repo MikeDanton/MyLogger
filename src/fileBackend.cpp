@@ -18,14 +18,14 @@ void FileBackend::write(const LogMessage& logMessage) {
     if (!logFile.is_open()) return;
 
     std::ostringstream oss;
-    oss << "[" << to_string(logMessage.level) << "] "
+    oss << "[" << logMessage.level << "] "  // ✅ Use stored string-based level
         << "[" << logMessage.context << "] "  // ✅ Ensure it's a string
         << logMessage.message << "\n";
 
     logFile << oss.str();
 }
 
-void FileBackend::FileBackend::flush() {
+void FileBackend::flush() {  // ✅ Fixed redundant scope resolution
     if (logFile.is_open()) {
         logFile.flush();
     }
@@ -67,7 +67,7 @@ void FileBackend::cleanOldLogs(int days) {
     std::string logDir = LoggerSettings::getInstance().getGlobalSetting("log_directory");
 
     for (const auto& entry : fs::directory_iterator(logDir)) {
-        if (entry.is_regular_file() && entry.path().extension() == ".txt") {
+        if (entry.is_regular_file()) {
             auto ftime = fs::last_write_time(entry);
             auto file_time = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
                 ftime - fs::file_time_type::clock::now() + now);

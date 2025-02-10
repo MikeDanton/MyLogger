@@ -39,36 +39,34 @@ void interactiveSession(TaskManager& taskManager) {
 }
 
 void logTestMessages(Logger& logger) {
-    logger.log(LogLevel::INFO, "Starting log test...");
+    logger.log("INFO", "Starting log test...");
 
     // ✅ Fetch dynamically configured contexts
     std::vector<std::string> contextNames = LoggerSettings::getInstance().getConfiguredContexts();
 
     for (const auto& contextName : contextNames) {
         std::string levelStr = LoggerSettings::getInstance().getContextLogLevel(contextName);
-        LogLevel level = logLevelFromString(levelStr);
 
-        logger.log(level, contextName, "Test message"); // ✅ Now correctly logging contexts
+        logger.log(levelStr, contextName, "Test message"); // ✅ Now correctly logging contexts
     }
 
-    logger.log(LogLevel::INFO, "Log test complete.");
+    logger.log("INFO", "Log test complete.");
 }
 
 int main() {
     Logger& logger = LoggerManager::getInstance();
 
-    logger.log(LogLevel::INFO, "Task Manager starting...");
+    logger.log("INFO", "Task Manager starting...");
 
     logTestMessages(logger);
 
     TaskManager taskManager(logger);
     interactiveSession(taskManager);
 
-    logger.log(LogLevel::INFO, "Task Manager session ended.");
+    logger.log("INFO", "Task Manager session ended.");
 
     // ✅ Ensure logs are written before exiting
     logger.flush();
 
     return 0;
 }
-

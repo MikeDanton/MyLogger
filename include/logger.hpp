@@ -1,7 +1,6 @@
 #ifndef LOGGER_HPP
 #define LOGGER_HPP
 
-#include "logLevel.hpp"
 #include "logMessage.hpp"
 #include "logBackend.hpp"
 #include <vector>
@@ -9,6 +8,7 @@
 #include <queue>
 #include <thread>
 #include <condition_variable>
+#include <string>
 
 class Logger {
 public:
@@ -16,10 +16,10 @@ public:
     ~Logger();
 
     void addBackend(std::unique_ptr<LogBackend> backend);
-    void log(LogLevel level, const std::string& context, const std::string& message);
-    void log(LogLevel level, const std::string& message);  // Default to GENERAL
+    void log(const std::string& level, const std::string& context, const std::string& message);
+    void log(const std::string& level, const std::string& message);  // Default context
 
-    void setLogLevel(LogLevel level);
+    void setLogLevel(const std::string& level);
     void flush();
 
     const std::vector<std::unique_ptr<LogBackend>>& getBackends() const;
@@ -33,7 +33,7 @@ private:
     std::condition_variable cv;
     bool exitFlag;
     std::thread logThread;
-    LogLevel minLogLevel;
+    std::string minLogLevel;
 };
 
 #endif // LOGGER_HPP

@@ -1,10 +1,10 @@
 #include "logger.hpp"
 #include "consoleBackend.hpp"
 #include "fileBackend.hpp"
+#include "loggerSettings.hpp"
 #include <chrono>
-#include <loggerSettings.hpp>
 
-Logger::Logger() : exitFlag(false), minLogLevel(LogLevel::INFO) {
+Logger::Logger() : exitFlag(false), minLogLevel("INFO") {  // 🔥 Default to INFO
     backends.push_back(std::make_unique<ConsoleBackend>());
     logThread = std::thread(&Logger::processQueue, this);
 }
@@ -32,12 +32,14 @@ void Logger::addBackend(std::unique_ptr<LogBackend> backend) {
     backends.push_back(std::move(backend));
 }
 
-void Logger::log(LogLevel level, const std::string& context, const std::string& message) {
-    if (level < minLogLevel) return;
+void Logger::log(const std::string& level, const std::string& context, const std::string& message) {
 
-    std::string resolvedContext = LoggerSettings::getInstance().getContextLogLevel(context);
+    if (!LoggerSettings::getInstance().shouldLog(level, context)) {
+        return;
+    }
 
-    LogMessage logMessage{level, resolvedContext, message};
+    LogMessage logMessage{level, context, message};
+
     {
         std::lock_guard<std::mutex> lock(mutex);
         logQueue.push(logMessage);
@@ -45,11 +47,11 @@ void Logger::log(LogLevel level, const std::string& context, const std::string& 
     cv.notify_one();
 }
 
-void Logger::log(LogLevel level, const std::string& message) {
+void Logger::log(const std::string& level, const std::string& message) {
     log(level, "GENERAL", message);
 }
 
-void Logger::setLogLevel(LogLevel level) {
+void Logger::setLogLevel(const std::string& level) {
     std::lock_guard<std::mutex> lock(mutex);
     minLogLevel = level;
 }
