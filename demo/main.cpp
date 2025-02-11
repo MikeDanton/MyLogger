@@ -38,7 +38,7 @@ void interactiveSession(TaskManager& taskManager) {
     }
 }
 
-void logTestMessages(Logger& logger) {
+void logTestMessages(Logger<LOGGING_ENABLED>& logger) {
     logger.log("INFO", "Starting log test...");
 
     // ✅ Fetch dynamically configured contexts
@@ -54,7 +54,7 @@ void logTestMessages(Logger& logger) {
 }
 
 int main() {
-    Logger& logger = LoggerManager::getInstance();
+    Logger<LOGGING_ENABLED>& logger = LoggerManager::getInstance();
 
     logger.log("INFO", "Task Manager starting...");
 

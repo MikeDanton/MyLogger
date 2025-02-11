@@ -7,7 +7,7 @@
 
 class TaskManager {
 public:
-    explicit TaskManager(Logger& logger);
+    explicit TaskManager(Logger<LOGGING_ENABLED>& logger);
 
     void addTask(const std::string& task);
     void listTasks();
@@ -15,7 +15,7 @@ public:
     void runSimulation();  // Automated testing with different log levels
 
 private:
-    Logger& logger;
+    Logger<LOGGING_ENABLED>& logger;
     std::vector<std::string> tasks;
 };
 

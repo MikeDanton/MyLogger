@@ -6,28 +6,27 @@
 #include <memory>
 #include <filesystem>
 
-Logger& LoggerManager::getInstance() {
-    static std::unique_ptr<Logger> globalLogger = std::make_unique<Logger>();
+Logger<LOGGING_ENABLED>& LoggerManager::getInstance() {
+    static Logger<LOGGING_ENABLED> globalLogger;
     static bool initialized = false;
 
     if (!initialized) {
         initialized = true;
-        initialize(*globalLogger);  // ✅ Pass reference to logger
+        initialize(globalLogger);
     }
 
-    return *globalLogger;
+    return globalLogger;
 }
 
-void LoggerManager::initialize(Logger& logger) {
+void LoggerManager::initialize(Logger<LOGGING_ENABLED>& logger) {
     const std::string configPath = "logger.conf";
 
-    LoggerSettings::getInstance();  // ✅ Ensure settings are initialized first
+    LoggerSettings::getInstance();
     LoggerConfig::loadConfig(configPath);
 
     bool useConsole = LoggerSettings::getInstance().isConsoleEnabled();
     bool useFile = LoggerSettings::getInstance().isFileEnabled();
 
-    // 🔥 Fix: No longer using `getLogLevel()`
     std::string level = LoggerSettings::getInstance().getContextLogLevel("GENERAL");
 
     logger.setLogLevel(level);
@@ -36,13 +35,15 @@ void LoggerManager::initialize(Logger& logger) {
         logger.addBackend(std::make_unique<ConsoleBackend>());
     }
 
-    if (useFile && !hasBackend<FileBackend>(logger)) {
-        logger.addBackend(std::make_unique<FileBackend>());
+    if constexpr (LOGGING_ENABLED) {
+        if (useFile && !hasBackend<FileBackend>(logger)) {
+            logger.addBackend(std::make_unique<FileBackend>());
+        }
     }
 }
 
 template <typename T>
-bool LoggerManager::hasBackend(Logger& logger) {
+bool LoggerManager::hasBackend(Logger<LOGGING_ENABLED>& logger) {
     for (const auto& backend : logger.getBackends()) {
         if (dynamic_cast<T*>(backend.get())) {
             return true;

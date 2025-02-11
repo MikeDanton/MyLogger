@@ -3,7 +3,7 @@
 #include <thread>
 
 // Constructor
-TaskManager::TaskManager(Logger& logger) : logger(logger) {}
+TaskManager::TaskManager(Logger<LOGGING_ENABLED>& logger) : logger(logger) {}
 
 // Add Task
 void TaskManager::addTask(const std::string& task) {

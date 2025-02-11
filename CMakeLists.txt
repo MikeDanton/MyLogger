@@ -3,13 +3,21 @@ project(myLogger)
 
 set(CMAKE_CXX_STANDARD 20)
 
-# ✅ Add build options to disable tests and benchmarks by default
+# ✅ Add build options
 option(ENABLE_TESTS "Build unit tests" OFF)
 option(ENABLE_BENCHMARKS "Build benchmarks" OFF)
 
+add_subdirectory(demo)
+
+# ✅ Automatically disable logging in Release mode and enable it in Debug mode
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_definitions(-DLOGGING_ENABLED=0)
+else()
+    add_definitions(-DLOGGING_ENABLED=1)
+endif()
+
 # ✅ Create the logger library
 add_library(myLoggerLib STATIC
-        src/logger.cpp
         src/consoleBackend.cpp
         src/fileBackend.cpp
         src/loggerManager.cpp
@@ -18,8 +26,8 @@ add_library(myLoggerLib STATIC
 
 target_include_directories(myLoggerLib PUBLIC include)
 
-# ✅ Install the library
-install(TARGETS myLoggerLib
+# ✅ Export the library to be found by external projects (e.g., `demo/`)
+install(TARGETS myLoggerLib EXPORT myLoggerLibConfig
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         RUNTIME DESTINATION bin
@@ -27,19 +35,17 @@ install(TARGETS myLoggerLib
 
 install(DIRECTORY include/ DESTINATION include)
 
-# ✅ Only build main executable if needed
-add_executable(myLoggerApp demo/main.cpp demo/taskManager.cpp)
-target_link_libraries(myLoggerApp PRIVATE myLoggerLib)
+export(EXPORT myLoggerLibConfig FILE "${CMAKE_BINARY_DIR}/myLoggerLibConfig.cmake")
 
-# ✅ Only build tests if ENABLE_TESTS is ON
+# ✅ Build tests only if enabled
 if (ENABLE_TESTS)
     enable_testing()
-    add_executable(myLoggerTests tests/test_logger.cpp demo/taskManager.cpp)
+    add_executable(myLoggerTests tests/test_logger.cpp)
     target_link_libraries(myLoggerTests PRIVATE myLoggerLib gtest gtest_main)
     add_test(NAME LoggerTests COMMAND myLoggerTests)
 endif()
 
-# ✅ Only build benchmarks if ENABLE_BENCHMARKS is ON
+# ✅ Build benchmarks only if enabled
 if (ENABLE_BENCHMARKS)
     find_package(benchmark REQUIRED)
 
@@ -49,3 +55,7 @@ if (ENABLE_BENCHMARKS)
     add_executable(benchmark_config benchmarks/benchmark_config.cpp)
     target_link_libraries(benchmark_config PRIVATE myLoggerLib benchmark::benchmark)
 endif()
+
+# ✅ Print status messages
+message(STATUS "Logging enabled: ${LOGGING_ENABLED}")
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
