@@ -71,11 +71,14 @@ bool LoggerSettings::isColorEnabled() const {
     return getGlobalSetting("enable_colors") == "true";
 }
 
-// ✅ Get all configured contexts
 std::vector<std::string> LoggerSettings::getConfiguredContexts() const {
     std::vector<std::string> contexts;
     for (const auto& [context, _] : contextLevels) {
         contexts.push_back(context);
     }
     return contexts;
+}
+
+bool LoggerSettings::isTimestampEnabled() const {
+    return getGlobalSetting("log_timestamps") == "true";
 }

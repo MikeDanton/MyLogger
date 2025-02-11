@@ -31,6 +31,8 @@ public:
 
     std::vector<std::string> getConfiguredContexts() const;
 
+    bool isTimestampEnabled() const;
+
 private:
     LoggerSettings() = default;
 

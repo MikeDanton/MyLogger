@@ -18,8 +18,13 @@ void FileBackend::write(const LogMessage& logMessage) {
     if (!logFile.is_open()) return;
 
     std::ostringstream oss;
-    oss << "[" << logMessage.level << "] "  // ✅ Use stored string-based level
-        << "[" << logMessage.context << "] "  // ✅ Ensure it's a string
+
+    if (LoggerSettings::getInstance().isTimestampEnabled()) {
+        oss << "[" << logMessage.timestamp << "] ";  // ✅ Use pre-stored timestamp
+    }
+
+    oss << "[" << logMessage.level << "] "
+        << "[" << logMessage.context << "] "
         << logMessage.message << "\n";
 
     logFile << oss.str();

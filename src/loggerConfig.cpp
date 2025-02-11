@@ -81,8 +81,10 @@ void LoggerConfig::generateDefaultConfig(const std::string& filepath) {
     file << "enable_console=true\n";
     file << "enable_file=true\n";
     file << "enable_colors=true\n";
+    file << "log_timestamps=true\n";
     file << "flush_mode=auto\n";
     file << "color_mode=level\n";
+
 
     file << "[LEVELS]\n";
     file << "INFO=ON\n";
