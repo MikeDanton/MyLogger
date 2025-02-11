@@ -40,7 +40,13 @@ std::string LoggerSettings::getLogColor(const std::string& level, const std::str
     if (!isColorEnabled()) return "";  // ✅ No color if disabled
 
     std::string colorMode = getGlobalSetting("color_mode");
-    std::string colorKey = (colorMode == "context") ? "context_" + context : level;
+    std::string colorKey;
+
+    if (colorMode == "context") {
+        colorKey = "context_" + context;
+    } else {
+        colorKey = "level_" + level;  // ✅ Ensure level colors match stored keys
+    }
 
     auto it = logColors.find(colorKey);
     std::string colorCode = (it != logColors.end()) ? it->second : "37";  // ✅ Default to white

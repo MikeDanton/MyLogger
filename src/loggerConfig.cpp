@@ -1,6 +1,7 @@
 #include "loggerConfig.hpp"
 #include "loggerSettings.hpp"
 #include "stringUtils.hpp"
+#include <toml++/toml.hpp>
 #include <fstream>
 #include <iostream>
 #include <filesystem>
@@ -12,55 +13,95 @@ void LoggerConfig::loadConfig(const std::string& filepath) {
         generateDefaultConfig(filepath);
     }
 
-    std::ifstream file(filepath);
-    if (!file) {
-        std::cerr << "[ERROR] Unable to read config file. Using defaults.\n";
-        return;
-    }
+    try {
+        toml::table config = toml::parse_file(filepath);
+        std::cerr << "[DEBUG] Successfully parsed TOML config: " << filepath << "\n";
 
-    std::string line;
-    bool inContextSection = false;
-    bool inLevels = false;
-    bool inColors = false;
-
-    while (std::getline(file, line)) {
-        if (line.empty() || line[0] == '#') continue;
-
-        if (line == "[CONTEXTS]") {
-            inContextSection = true;
-            inLevels = false;
-            inColors = false;
-            continue;
-        }
-        if (line == "[LEVELS]") {
-            inLevels = true;
-            inContextSection = false;
-            inColors = false;
-            continue;
-        }
-        if (line == "[LEVEL_COLORS]" || line == "[CONTEXT_COLORS]") {
-            inColors = true;
-            inContextSection = false;
-            inLevels = false;
-            continue;
-        }
-
-        std::istringstream iss(line);
-        std::string key, value;
-        if (std::getline(iss, key, '=') && std::getline(iss, value)) {
-            key = trim(key);
-            value = trim(value);
-
-            if (inContextSection) {
-                LoggerSettings::getInstance().setContextLogLevel(key, value);
-            } else if (inLevels) {
-                LoggerSettings::getInstance().setLogLevel(key, value);
-            } else if (inColors) {
-                LoggerSettings::getInstance().setLogColor(key, value);  // ✅ Unified color storage
-            } else {
-                LoggerSettings::getInstance().setGlobalSetting(key, value);
+        // ✅ Read general settings
+        if (auto general = config["general"].as_table()) {
+            for (const auto& [key, value] : *general) {
+                std::string keyStr = std::string(key);
+                std::string valStr = value.is_string() ? value.as_string()->get() : "";
+                LoggerSettings::getInstance().setGlobalSetting(keyStr, valStr);
+                std::cerr << "[DEBUG] Global Setting: " << keyStr << " = " << valStr << "\n";
             }
+        } else {
+            std::cerr << "[ERROR] Missing [general] section in config!\n";
         }
+
+        // ✅ Read toggles
+        if (auto toggles = config["toggles"].as_table()) {
+            for (const auto& [key, value] : *toggles) {
+                std::string keyStr = std::string(key);
+                std::string valStr = value.is_boolean() ? (value.as_boolean()->get() ? "true" : "false") : "false";
+                LoggerSettings::getInstance().setGlobalSetting(keyStr, valStr);
+                std::cerr << "[DEBUG] Toggle: " << keyStr << " = " << valStr << "\n";
+            }
+        } else {
+            std::cerr << "[ERROR] Missing [toggles] section in config!\n";
+        }
+
+        // ✅ Read log levels
+        if (auto levels = config["levels"].as_table()) {
+            for (const auto& [key, value] : *levels) {
+                std::string keyStr = std::string(key);
+                std::string valStr = value.is_string() ? value.as_string()->get() : "OFF";
+                LoggerSettings::getInstance().setLogLevel(keyStr, valStr);
+                std::cerr << "[DEBUG] Log Level: " << keyStr << " = " << valStr << "\n";
+            }
+        } else {
+            std::cerr << "[ERROR] Missing [levels] section in config!\n";
+        }
+
+        // ✅ Read colors (context + level)
+        if (auto colors = config["colors"].as_table()) {
+            if (auto level_colors_node = colors->get("level")) {  // Check existence first
+                if (auto level_colors = level_colors_node->as_table()) {
+                    for (const auto& [key, value] : *level_colors) {
+                        std::string keyStr = std::string(key);
+                        std::string valStr = std::to_string(value.is_integer() ? value.as_integer()->get() : 37);
+                        LoggerSettings::getInstance().setLogColor("level_" + keyStr, valStr);
+                        std::cerr << "[DEBUG] Level Color: " << keyStr << " -> " << valStr << "\n";
+                    }
+                } else {
+                    std::cerr << "[ERROR] [colors.level] is not a table!\n";
+                }
+            } else {
+                std::cerr << "[ERROR] Missing [colors.level] section in config!\n";
+            }
+
+            if (auto context_colors_node = colors->get("context")) {  // Check existence first
+                if (auto context_colors = context_colors_node->as_table()) {
+                    for (const auto& [key, value] : *context_colors) {
+                        std::string keyStr = std::string(key);
+                        std::string valStr = std::to_string(value.is_integer() ? value.as_integer()->get() : 37);
+                        LoggerSettings::getInstance().setLogColor("context_" + keyStr, valStr);
+                        std::cerr << "[DEBUG] Context Color: " << keyStr << " -> " << valStr << "\n";
+                    }
+                } else {
+                    std::cerr << "[ERROR] [colors.context] is not a table!\n";
+                }
+            } else {
+                std::cerr << "[ERROR] Missing [colors.context] section in config!\n";
+            }
+        } else {
+            std::cerr << "[ERROR] Missing [colors] section in config!\n";
+        }
+
+        // ✅ Read context-based log levels
+        if (auto contexts = config["contexts"].as_table()) {
+            for (const auto& [key, value] : *contexts) {
+                std::string keyStr = std::string(key);
+                std::string valStr = value.is_string() ? value.as_string()->get() : "INFO";
+                LoggerSettings::getInstance().setContextLogLevel(keyStr, valStr);
+                std::cerr << "[DEBUG] Context Log Level: " << keyStr << " -> " << valStr << "\n";
+            }
+        } else {
+            std::cerr << "[ERROR] Missing [contexts] section in config!\n";
+        }
+
+    } catch (const toml::parse_error& err) {
+        std::cerr << "[ERROR] Failed to parse TOML config: " << err.what() << "\n";
     }
 }
 
@@ -75,44 +116,62 @@ void LoggerConfig::generateDefaultConfig(const std::string& filepath) {
 
     std::cerr << "[INFO] Generating default config file: " << filepath << "\n";
 
-    file << "log_directory=logs/\n";
-    file << "log_filename_format=log_%Y-%m-%d_%H-%M-%S.txt\n";
-    file << "log_rotation_days=7\n";
-    file << "enable_console=true\n";
-    file << "enable_file=true\n";
-    file << "enable_colors=true\n";
-    file << "log_timestamps=true\n";
-    file << "flush_mode=auto\n";
-    file << "color_mode=level\n";
+    file << R"(
+[general]
+log_directory = "logs/"
+log_filename_format = "log_%Y-%m-%d_%H-%M-%S.txt"
+log_rotation_days = 7
+flush_mode = "auto"
+color_mode = "level"
 
+[toggles]
+enable_console = true
+enable_file = true
+enable_colors = true
+log_timestamps = true
 
-    file << "[LEVELS]\n";
-    file << "INFO=ON\n";
-    file << "WARN=ON\n";
-    file << "ERROR=ON\n";
-    file << "DEBUG=ON\n";
-    file << "VERBOSE=OFF\n";
+[levels]
+INFO = "ON"
+WARN = "ON"
+ERROR = "ON"
+DEBUG = "ON"
+VERBOSE = "OFF"
 
-    file << "[LEVEL_COLORS]\n";
-    file << "INFO=32\n";
-    file << "WARN=33\n";
-    file << "ERROR=31\n";
-    file << "DEBUG=36\n";
+[colors]
+color_mode = "level"
+[colors.level]
+INFO = 32
+WARN = 33
+ERROR = 31
+DEBUG = 36
 
-    file << "[CONTEXT_COLORS]\n";
-    file << "context_GENERAL=37\n";
-    file << "context_NETWORK=34\n";
-    file << "context_DATABASE=35\n";
-    file << "context_UI=36\n";
-    file << "context_AUDIO=33\n";
-    file << "context_RENDERING=31\n";
+[colors.context]
+GENERAL = 37
+NETWORK = 34
+DATABASE = 35
+UI = 36
+AUDIO = 33
+RENDERING = 31
+UNKNOWN = 32
 
-    file << "[CONTEXTS]\n";
-    file << "GENERAL=INFO\n";
-    file << "NETWORK=DEBUG\n";
-    file << "DATABASE=WARN\n";
-    file << "UI=INFO\n";
-    file << "AUDIO=DEBUG\n";
-    file << "RENDERING=WARN\n";
-    file << "UNKNOWN=WARN\n";
+[contexts]
+GENERAL = "INFO"
+NETWORK = "DEBUG"
+DATABASE = "WARN"
+UI = "INFO"
+AUDIO = "DEBUG"
+RENDERING = "WARN"
+UNKNOWN = "WARN"
+
+[backends.console]
+enabled = true
+log_levels = ["INFO", "WARN", "ERROR"]
+use_colors = true
+
+[backends.file]
+enabled = true
+log_levels = ["DEBUG", "INFO", "ERROR"]
+log_directory = "logs/"
+rotation_days = 7
+)";
 }

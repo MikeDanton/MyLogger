@@ -3,20 +3,24 @@ project(myLogger)
 
 set(CMAKE_CXX_STANDARD 20)
 
-# ✅ Add build options
 option(ENABLE_TESTS "Build unit tests" OFF)
 option(ENABLE_BENCHMARKS "Build benchmarks" OFF)
 
 add_subdirectory(demo)
 
-# ✅ Automatically disable logging in Release mode and enable it in Debug mode
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
     add_definitions(-DLOGGING_ENABLED=0)
 else()
     add_definitions(-DLOGGING_ENABLED=1)
 endif()
 
-# ✅ Create the logger library
+# Changed lines below (point CMake to the folder containing `toml++/toml.hpp`)
+add_library(tomlplusplus INTERFACE)
+target_include_directories(tomlplusplus INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tomlplusplus/include>
+        $<INSTALL_INTERFACE:include>
+)
+
 add_library(myLoggerLib STATIC
         src/consoleBackend.cpp
         src/fileBackend.cpp
@@ -24,20 +28,22 @@ add_library(myLoggerLib STATIC
         src/loggerConfig.cpp
         src/loggerSettings.cpp)
 
-target_include_directories(myLoggerLib PUBLIC include)
+target_include_directories(myLoggerLib PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
 
-# ✅ Export the library to be found by external projects (e.g., `demo/`)
-install(TARGETS myLoggerLib EXPORT myLoggerLibConfig
+target_link_libraries(myLoggerLib PRIVATE tomlplusplus)
+
+install(TARGETS myLoggerLib tomlplusplus EXPORT myLoggerLibConfig
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         RUNTIME DESTINATION bin
 )
 
 install(DIRECTORY include/ DESTINATION include)
+install(EXPORT myLoggerLibConfig DESTINATION lib/cmake/myLoggerLib)
 
-export(EXPORT myLoggerLibConfig FILE "${CMAKE_BINARY_DIR}/myLoggerLibConfig.cmake")
-
-# ✅ Build tests only if enabled
 if (ENABLE_TESTS)
     enable_testing()
     add_executable(myLoggerTests tests/test_logger.cpp)
@@ -45,7 +51,6 @@ if (ENABLE_TESTS)
     add_test(NAME LoggerTests COMMAND myLoggerTests)
 endif()
 
-# ✅ Build benchmarks only if enabled
 if (ENABLE_BENCHMARKS)
     find_package(benchmark REQUIRED)
 
@@ -56,6 +61,5 @@ if (ENABLE_BENCHMARKS)
     target_link_libraries(benchmark_config PRIVATE myLoggerLib benchmark::benchmark)
 endif()
 
-# ✅ Print status messages
 message(STATUS "Logging enabled: ${LOGGING_ENABLED}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
