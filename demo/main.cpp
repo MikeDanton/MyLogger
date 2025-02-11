@@ -1,72 +1,43 @@
-#include "loggerManager.hpp"
-#include "taskManager.hpp"
-#include <iostream>
+#include "logger.h"
+#include <thread>
 #include <chrono>
-#include <loggerSettings.hpp>
+#include <iostream>
 
-void interactiveSession(TaskManager& taskManager) {
-    while (true) {
-        std::cout << "\n=== Task Manager ===\n";
-        std::cout << "1. Add Task\n2. List Tasks\n3. Remove Task\n4. Simulate Actions\n5. Exit\n";
-        std::cout << "Enter choice: ";
-
-        int choice;
-        std::cin >> choice;
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-        if (choice == 1) {
-            std::cout << "Enter task: ";
-            std::string task;
-            std::getline(std::cin, task);
-            taskManager.addTask(task);
-        } else if (choice == 2) {
-            taskManager.listTasks();
-        } else if (choice == 3) {
-            std::cout << "Enter task number to remove: ";
-            int index;
-            std::cin >> index;
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            taskManager.removeTask(index);
-        } else if (choice == 4) {
-            taskManager.runSimulation();
-        } else if (choice == 5) {
-            std::cout << "Exiting Task Manager.\n";
-            break;
-        } else {
-            std::cout << "Invalid choice! Try again.\n";
-        }
-    }
+void logTestMessages(Logger& logger) {
+    logger.log("INFO", "GENERAL", "Logger started successfully.");
+    logger.log("DEBUG", "NETWORK", "Initializing network module...");
+    logger.log("WARN", "DATABASE", "Database connection is slow.");
+    logger.log("ERROR", "UI", "Failed to load UI assets!");
+    logger.log("INFO", "AUDIO", "Audio system initialized.");
+    logger.log("DEBUG", "RENDERING", "Loading textures...");
+    logger.log("ERROR", "DATABASE", "Database query failed!");
+    logger.log("WARN", "GENERAL", "Low disk space warning.");
+    logger.log("INFO", "GENERAL", "Application is running.");
 }
 
-void logTestMessages(Logger<LOGGING_ENABLED>& logger) {
-    logger.log("INFO", "Starting log test...");
-
-    // ✅ Fetch dynamically configured contexts
-    std::vector<std::string> contextNames = LoggerSettings::getInstance().getConfiguredContexts();
-
-    for (const auto& contextName : contextNames) {
-        std::string levelStr = LoggerSettings::getInstance().getContextLogLevel(contextName);
-
-        logger.log(levelStr, contextName, "Test message"); // ✅ Now correctly logging contexts
-    }
-
-    logger.log("INFO", "Log test complete.");
+void threadedLogging(Logger& logger) {
+    std::thread logThread([&]() {
+        for (int i = 0; i < 10; i++) {
+            logger.log("INFO", "MULTI_THREAD", ("Threaded log entry #" + std::to_string(i)).c_str());
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+    });
+    logThread.join();
 }
 
 int main() {
-    Logger<LOGGING_ENABLED>& logger = LoggerManager::getInstance();
+    Logger& logger = Logger::getInstance();
+    logger.init();
 
-    logger.log("INFO", "Task Manager starting...");
-
+    std::cout << "Logging messages with different levels & contexts...\n";
     logTestMessages(logger);
 
-    TaskManager taskManager(logger);
-    interactiveSession(taskManager);
+    std::cout << "Testing threaded logging...\n";
+    threadedLogging(logger);
 
-    logger.log("INFO", "Task Manager session ended.");
+    std::cout << "Flushing logs before exit...\n";
+    logger.flush();  // ✅ Ensures all logs are written before exiting
 
-    // ✅ Ensure logs are written before exiting
-    logger.flush();
-
+    std::cout << "Logger test completed.\n";
     return 0;
 }
