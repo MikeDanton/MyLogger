@@ -14,7 +14,8 @@ else()
 endif()
 
 # ✅ Create the demo executable (Removed taskManager.cpp)
-add_executable(myLoggerApp main.cpp)
+add_executable(myLoggerApp main.cpp
+        logger_controller.cpp)
 
 # ✅ Link against `myLoggerLib`
 target_link_libraries(myLoggerApp PRIVATE myLoggerLib)

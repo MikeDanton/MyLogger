@@ -1,7 +1,7 @@
 #include "logger.hpp"
 #include <logger_config.hpp>
-#include "console_backend.h"
-#include "file_backend.h"
+#include "console_backend.hpp"
+#include "file_backend.hpp"
 #include <cstdio>
 #include <ctime>
 #include <iostream>

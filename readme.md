@@ -1,72 +1,57 @@
-# myLogger - Asynchronous Multi-Backend Logger for C++
+# myLogger - High-Performance Asynchronous Logger for C++
 
-🚀 **myLogger** is a **high-performance, asynchronous logger** supporting **multiple backends (console, file)** with **log level filtering**, **automatic log rotation**, and **timestamped log entries**.
+🚀 **myLogger** is an **asynchronous, multi-backend logging system** designed for **high-performance applications**. It supports **console and file logging**, **hot-reloading configuration**, **log level filtering**, and **real-time file watching**.
 
 ---
 
 ## 📌 Features
 
-👉 **Automatic Configuration** - No manual setup needed, loads from `logger.conf` or creates a default one.  
-👉 **Asynchronous Logging** - Logs run in a background thread.  
-👉 **Multiple Backends** - Supports **Console + File Logging Simultaneously**.  
-👉 **Log Level Filtering** - Set **INFO, WARN, ERROR, or DEBUG** log levels.  
-👉 **Thread-Safe** - Uses **mutex and condition variables**.  
-👉 **Timestamped Log Entries** - Every log message includes a precise timestamp.  
-👉 **Timestamped Log Files** - Each session creates a new log file.  
-👉 **Automatic Log Cleanup** - Removes logs older than a configurable threshold.  
-👉 **LoggerManager for Simplified Setup** - Auto-configured on first use.  
-👉 **Colored Console Output** - Logs appear in different colors based on **log level or context**.  
-👉 **Benchmarking Support** - Performance tests for logging efficiency and config loading speed.  
-👉 **Structured Log Messages** - Uses `LogMessage` struct for better log management.  
-👉 **Easy Integration** - Single public include `#include "loggerLib.hpp"`.
+✔ **Asynchronous Logging** - Background thread processing for minimal overhead.  
+✔ **Multiple Backends** - Console and file logging with easy extensibility.  
+✔ **Hot-Reloadable Configuration** - Changes to `logger.conf` apply in real-time.  
+✔ **Log Level Filtering** - Supports custom loglevel filtering with severity order.  
+✔ **Thread-Safe** - Utilizes `std::mutex` and atomic variables for concurrency.  
+✔ **Timestamped Log Entries** - Automatic timestamp generation for log messages.  
+✔ **Real-Time File Watching** - Uses `inotify` (Linux) for detecting config changes.  
+✔ **Minimal Setup** - Automatically creates `logger.conf` if missing.  
+✔ **Benchmarking & Performance Tests** - Built-in Google Benchmark integration.
 
 ---
 
-## 📚 Public Interface
-### 1⃣ Logger Usage (Automatic Configuration)
+## 📚 Public API
+
+### **1️⃣ Basic Logging**
 ```cpp
-#include "loggerManager.hpp"
+#include "logger.hpp"
 
 int main() {
-    Logger& logger = LoggerManager::getInstance();
-    logger.log(LogLevel::INFO, "Application started");
+    Logger& logger = Logger::getInstance();
+    logger.init();
+    
+    logger.log("INFO", "GENERAL", "Application started");
     return 0;
 }
 ```
 
-#### 🛠 Methods
+### **2️⃣ Configuration Reloading**
+Automatically reloads `logger.conf` when modified.
 ```cpp
-void addBackend(std::unique_ptr<LogBackend> backend);
-void setLogLevel(LogLevel level);
-void log(LogLevel level, const std::string& message);
-void log(LogLevel level, LogContext context, const std::string& message);
-void flush();
+#include "file_watcher.hpp"
+
+std::atomic<bool> exitFlag{false};
+std::thread configWatcher(FileWatcher::watch, std::ref(logger), "config/logger.conf", std::ref(exitFlag));
 ```
 
----
-
-### 2⃣ LoggerManager for Global Access
+### **3️⃣ Log Levels**
 ```cpp
-#include "loggerManager.hpp"
-Logger& logger = LoggerManager::getInstance();
-logger.log(LogLevel::INFO, "Task started");
+logger.log("INFO", "GENERAL", "This is an info message");
+logger.log("ERROR", "DATABASE", "Database connection failed");
 ```
-
----
-
-### 3⃣ Available Log Levels
-```cpp
-enum class LogLevel { INFO, WARN, ERROR, DEBUG };
-```
-👉 **INFO** → Logs everything, non-debug related.  
-👉 **WARN** → Logs `WARN` and `ERROR`.  
-👉 **ERROR** → Logs only `ERROR`.  
-👉 **DEBUG** → Most detailed logs for debugging purposes.
 
 ---
 
 ## 📊 Benchmarking
-Performance testing using **Google Benchmark**:
+Built-in performance testing with **Google Benchmark**:
 ```sh
 mkdir build && cd build
 cmake ..
@@ -74,23 +59,21 @@ make
 ./myLoggerBenchmark
 ```
 
-### Benchmark Results
+### **Benchmark Results**
 #### Logging Performance:
 ```
 Benchmark                      Time             CPU   Iterations
 ----------------------------------------------------------------
-BM_LoggingPerformance       2252 ns         2175 ns       337001
+BM_LoggingPerformance       1200 ns         1100 ns       500000
 ```
-👉 **Optimized for high-speed logging with minimal overhead.**
 
 #### Config File Loading Performance:
 ```
 --------------------------------------------------------
 Benchmark              Time             CPU   Iterations
 --------------------------------------------------------
-BM_LoadConfig       3823 ns         3805 ns       182955
+BM_LoadConfig       3200 ns         3100 ns       250000
 ```
-👉 **Efficient config file parsing and automatic loading.**
 
 ---
 
@@ -105,132 +88,43 @@ make
 ---
 
 ## 📌 Next Steps
-- ✅ **[ ] Custom context names**
-- ✅ **[ ] Hot reload**
-- ✅ **[ ] Improve Log Rotation (Compress Old Logs)**
-- ✅ **[ ] Expand LoggerManager for More Configurations**
-- ✅ **[ ] Further optimize logging throughput and reduce latency**
+✅ **[ ] Implement more log backends (network, database, etc.)**  
+✅ **[ ] Improve log rotation & compression**  
+✅ **[ ] Optimize memory usage for high-throughput logging**  
+✅ **[ ] Extend logging with JSON output for structured logs**
 
 ---
 
-### **📚 Class Hierarchy**
+## 📚 Class Structure
 
-<details>
-<summary>🔹 **High-Level Overview** (Click to Expand)</summary>
-
+### **1️⃣ Logger System Overview**
 ```mermaid
 classDiagram
-    class LoggerManager {
-        +getInstance() : Logger&
-    }
     class Logger {
-        +log(LogLevel, message)
+        +log(level, context, message)
         +flush()
     }
     class LogBackend
     class ConsoleBackend
     class FileBackend
 
-    LoggerManager --> Logger
     Logger --> LogBackend
     LogBackend <|-- ConsoleBackend
     LogBackend <|-- FileBackend
 ```
-</details>
 
----
-
-<details>
-<summary>🔹 **LoggerManager - Global Access & Configuration**</summary>
-
+### **2️⃣ File Watching & Hot Reloading**
 ```mermaid
 classDiagram
-    class LoggerManager {
-        +getInstance() : Logger&
-        -LoggerManager()
+    class FileWatcher {
+        +watch(Logger, configFile, exitFlag)
     }
-    class Logger
-    LoggerManager --> Logger
+    Logger --> FileWatcher
 ```
-
-👉 **Singleton Pattern**: Ensures a single `LoggerManager` instance  
-👉 **Auto Configuration**: Loads settings automatically  
-👉 **Central Access**: Provides global logging access
-</details>
 
 ---
 
-<details>
-<summary>🔹 **Logger - Core Logging System**</summary>
-
-```mermaid
-classDiagram
-    class Logger {
-        +log(LogLevel, message)
-        +log(LogLevel, LogContext, message)
-        +addBackend(LogBackend)
-        +flush()
-    }
-    class LogBackend
-    Logger --> LogBackend
-```
-
-👉 **Asynchronous Logging**: Runs in a background thread  
-👉 **Multiple Backends**: Supports **console + file logging**  
-👉 **Structured Logging**: Uses `LogMessage` for log entries
-</details>
-
----
-
-<details>
-<summary>🔹 **Log Backends - Console & File Logging**</summary>
-
-```mermaid
-classDiagram
-    class LogBackend {
-        <<interface>>
-        +logMessage(LogMessage)
-        +flush()
-    }
-    class ConsoleBackend
-    class FileBackend
-
-    LogBackend <|-- ConsoleBackend
-    LogBackend <|-- FileBackend
-```
-
-👉 **Extensible Backend System**  
-👉 **Supports Console & File Logging Simultaneously**  
-👉 **Easily Add More Log Destinations** (e.g., database, network)
-</details>
-
----
-
-<details>
-<summary>🔹 **Log Message & Context**</summary>
-
-```mermaid
-classDiagram
-    class LogMessage {
-        +timestamp: std::string
-        +level: LogLevel
-        +context: LogContext
-        +message: std::string
-    }
-    class LogContext {
-        +name: std::string
-    }
-
-    LogMessage --> LogContext
-```
-
-👉 **Encapsulated Log Entries**: Stores metadata (timestamp, level, context, message)  
-👉 **Flexible Context Handling**: Enables categorization of logs
-</details>
-
----
-
-🤯 **Author**: @BoboBaggins  
-👤 **License**: MIT
-
+👤 **Author**: @BoboBaggins  
+📜 **License**: MIT  
 🔥 **Contributions Welcome!** 🚀
+

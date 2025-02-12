@@ -4,7 +4,6 @@
 #include <fstream>
 #include <iostream>
 #include <filesystem>
-#include <cassert>
 
 void LoggerConfig::precomputeColors(LoggerSettings& settings) {
     settings.logColorArray.fill(37);   // Default white

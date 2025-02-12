@@ -20,5 +20,9 @@ logs/
 *.log
 
 # Configuration files
+.conf/
 logger.conf
 *.cfg
+
+# Tomplusplus
+.tomplusplus/

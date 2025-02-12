@@ -26,6 +26,8 @@ add_library(myLoggerLib STATIC
         src/logger_config.cpp
         src/console_backend.cpp
         src/file_backend.cpp
+        src/file_watcher.cpp
+        include/file_watcher.hpp
 )
 
 target_include_directories(myLoggerLib PUBLIC

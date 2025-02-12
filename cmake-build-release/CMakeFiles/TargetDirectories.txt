@@ -1,0 +1,14 @@
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-release/CMakeFiles/myLoggerLib.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-release/CMakeFiles/edit_cache.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-release/CMakeFiles/rebuild_cache.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-release/CMakeFiles/list_install_components.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-release/CMakeFiles/install.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-release/CMakeFiles/install/local.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-release/CMakeFiles/install/strip.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-release/demo/CMakeFiles/myLoggerApp.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-release/demo/CMakeFiles/edit_cache.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-release/demo/CMakeFiles/rebuild_cache.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-release/demo/CMakeFiles/list_install_components.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-release/demo/CMakeFiles/install.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-release/demo/CMakeFiles/install/local.dir
+/home/BoboBaggins/CLionProjects/myLogger/cmake-build-release/demo/CMakeFiles/install/strip.dir
