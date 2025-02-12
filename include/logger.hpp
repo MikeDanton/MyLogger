@@ -4,9 +4,13 @@
 #include <atomic>
 #include <mutex>
 #include <thread>
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
+#include <vector>
+#include <array>
 
+#define MAX_LEVELS 16
+#define MAX_CONTEXTS 16
 #define MAX_BACKENDS 4
 #define MAX_LOG_ENTRIES 1024
 
@@ -28,10 +32,18 @@ struct LoggerSettings {
     bool enableColors;
     bool enableTimestamps;
 
-    std::unordered_map<std::string, bool> logLevelEnabled;  // Dynamically mapped levels
-    std::unordered_map<std::string, int> logLevelSeverities; // Numeric severity for each level, e.g. "DEBUG" -> 2, "ERROR" -> 5, etc.
-    std::unordered_map<std::string, int> logColors;         // Colors per level & context
-    std::unordered_map<std::string, std::string> contextLevels; // Context-based log filtering
+    std::array<bool, MAX_LEVELS> logLevelEnabledArray;
+    std::array<int, MAX_LEVELS> logLevelSeveritiesArray;
+    std::array<int, MAX_LEVELS> logColorArray;          // Level colors
+    std::array<int, MAX_CONTEXTS> contextColorArray;    // Context colors
+    std::array<int, MAX_CONTEXTS> contextSeverityArray;
+
+    std::unordered_map<std::string, int> levelIndexMap;  // Fast level lookup
+    std::unordered_map<std::string, int> contextIndexMap; // Fast context lookup
+    std::unordered_map<std::string, int> parsedLogColors;
+
+    std::vector<std::string> logLevelNames;
+    std::vector<std::string> contextNames;
 
     std::string colorMode;
 };
@@ -43,6 +55,10 @@ public:
     void addBackend(LogBackend* backend);
     void log(const char* level, const char* context, const char* message);
     void flush();
+    int getSeverity(const std::string& level) const;
+    int getLevelIndex(const std::string& level) const;
+    int getContextIndex(const std::string& context) const;
+    void updateSettings(const std::string& configFile);
 
     const LoggerSettings& getSettings() const { return settings; }
 
@@ -50,7 +66,6 @@ private:
     Logger();
     ~Logger();
     void processQueue();
-    int getSeverity(const std::string& level) const;
 
     LogBackend* backends[MAX_BACKENDS];
     int backendCount;

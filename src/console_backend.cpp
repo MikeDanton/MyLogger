@@ -1,5 +1,5 @@
 #include "console_backend.h"
-#include "logger.h"
+#include "logger.hpp"
 #include <cstdio>
 #include <iostream>
 
@@ -8,24 +8,20 @@ void console_write(const LogMessage* log) {
     const LoggerSettings& settings = logger.getSettings();
 
     const char* reset = "\033[0m";
-    std::string colorCode;
+    std::string colorCode = "\033[37m";  // Default white
 
     if (settings.enableColors) {
-        // Decide if we color by level or context:
-        std::string colorKey;
-        if (settings.colorMode == "context") {
-            colorKey = "context_" + std::string(log->context);
-        } else {
-            // default to "level" mode
-            colorKey = "level_" + std::string(log->level);
+        int colorValue = 37; // Default white
+        int levelIndex = logger.getLevelIndex(log->level);
+        int contextIndex = logger.getContextIndex(log->context);
+
+        if (settings.colorMode == "context" && contextIndex >= 0) {
+            colorValue = settings.contextColorArray[contextIndex];
+        } else if (levelIndex >= 0) {
+            colorValue = settings.logColorArray[levelIndex];
         }
 
-        auto colorIt = settings.logColors.find(colorKey);
-        if (colorIt != settings.logColors.end()) {
-            colorCode = "\033[" + std::to_string(colorIt->second) + "m";
-        } else {
-            colorCode = "\033[37m"; // white
-        }
+        colorCode = "\033[" + std::to_string(colorValue) + "m";
     }
 
     printf("%s[%s] %s: %s%s\n",
@@ -35,7 +31,6 @@ void console_write(const LogMessage* log) {
            log->message,
            reset);
 }
-
 
 void console_flush() {
     fflush(stdout);

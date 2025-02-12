@@ -1,7 +1,7 @@
 #ifndef FILE_BACKEND_H
 #define FILE_BACKEND_H
 
-#include "logger.h"
+#include "logger.hpp"
 
 // ✅ Declare FileBackend so it can be used in other files
 extern LogBackend FileBackend;

@@ -1,112 +1,108 @@
 #include "logger_config.hpp"
-#include "logger.h"
+#include "logger.hpp"
 #include <toml++/toml.hpp>
 #include <fstream>
 #include <iostream>
 #include <filesystem>
 #include <cassert>
 
-void LoggerConfig::loadConfig(const std::string& filepath, LoggerSettings& settings) {
-    assert(!filepath.empty());
+void LoggerConfig::precomputeColors(LoggerSettings& settings) {
+    settings.logColorArray.fill(37);   // Default white
+    settings.contextColorArray.fill(37); // Default white
 
+    for (size_t i = 0; i < settings.logLevelNames.size(); i++) {
+        std::string levelKey = "level_" + settings.logLevelNames[i];
+        auto it = settings.parsedLogColors.find(levelKey);
+        settings.logColorArray[i] = (it != settings.parsedLogColors.end()) ? it->second : 37;
+    }
+
+    for (size_t i = 0; i < settings.contextNames.size(); i++) {
+        std::string contextKey = "context_" + settings.contextNames[i];
+        auto it = settings.parsedLogColors.find(contextKey);
+        settings.contextColorArray[i] = (it != settings.parsedLogColors.end()) ? it->second : 37;
+    }
+}
+
+void LoggerConfig::loadOrGenerateConfig(const std::string& filepath, LoggerSettings& settings) {
     if (!std::filesystem::exists(filepath)) {
+        std::cerr << "[LoggerConfig] Config file missing. Generating default: " << filepath << "\n";
         generateDefaultConfig(filepath);
     }
 
+    loadConfig(filepath, settings);
+}
+
+void LoggerConfig::loadConfig(const std::string& filepath, LoggerSettings& settings) {
     try {
         toml::table config = toml::parse_file(filepath);
 
-        // ------ general section ------
-        if (auto general = config["general"].as_table()) {
-            if (auto val = general->get_as<bool>("log_timestamps")) {
-                settings.enableTimestamps = val->get();
-            } else {
-                settings.enableTimestamps = true;
-            }
+        // ✅ General settings
+        settings.enableTimestamps = config["general"]["log_timestamps"].value_or(true);
+        settings.enableConsole = config["toggles"]["enable_console"].value_or(true);
+        settings.enableFile = config["toggles"]["enable_file"].value_or(true);
+        settings.enableColors = config["toggles"]["enable_colors"].value_or(false);
+        settings.colorMode = config["colors"]["color_mode"].value_or("level");
+
+        // ✅ Load log levels (precompute array)
+        settings.logLevelNames.clear();
+        settings.levelIndexMap.clear();
+        settings.logLevelEnabledArray.fill(false);
+
+        int index = 0;
+        for (auto&& [key, node] : *config["levels"].as_table()) {
+            if (index >= MAX_LEVELS) break;
+            std::string levelName = std::string(key); // Convert toml::key to std::string
+            settings.logLevelNames.push_back(levelName);
+            settings.levelIndexMap[levelName] = index;
+            settings.logLevelEnabledArray[index] = (node.as_string()->get() == "ON");
+            ++index;
         }
 
-        // ------ toggles section ------
-        if (auto toggles = config["toggles"].as_table()) {
-            if (auto val = toggles->get_as<bool>("enable_console")) {
-                settings.enableConsole = val->get();
-            } else {
-                settings.enableConsole = true;
-            }
-            if (auto val = toggles->get_as<bool>("enable_file")) {
-                settings.enableFile = val->get();
-            } else {
-                settings.enableFile = true;
-            }
-            if (auto val = toggles->get_as<bool>("enable_colors")) {
-                settings.enableColors = val->get();
-            } else {
-                settings.enableColors = false;
-            }
+        // ✅ Load severities (precompute array)
+        settings.logLevelSeveritiesArray.fill(0);
+        for (size_t i = 0; i < settings.logLevelNames.size(); i++) {
+            auto it = config["severities"].as_table()->find(settings.logLevelNames[i]);
+            settings.logLevelSeveritiesArray[i] = (it != config["severities"].as_table()->end()) ? it->second.as_integer()->get() : 0;
         }
 
-        // ------ levels (ON/OFF) section ------
-        if (auto levels = config["levels"].as_table()) {
-            for (auto&& [key, node] : *levels) {
-                std::string levelName = std::string(key);
-                bool enabled = (node.is_string() && node.as_string()->get() == "ON");
-                settings.logLevelEnabled[levelName] = enabled;
-            }
-        }
-
-        // ------ severities section (NEW) ------
-        // e.g. [severities] DEBUG=2, INFO=3, etc.
-        if (auto severities = config["severities"].as_table()) {
-            for (auto&& [key, node] : *severities) {
-                // key = "DEBUG", "ERROR", etc.
-                if (node.is_integer()) {
-                    int severityNum = static_cast<int>(node.as_integer()->get());
-                    settings.logLevelSeverities[std::string(key)] = severityNum;
-                }
-            }
-        }
-
-        // ------ colors section ------
+        // ✅ Load colors into temporary storage (`parsedLogColors`)
+        settings.parsedLogColors.clear();
         if (auto colors = config["colors"].as_table()) {
-            // color_mode
-            if (auto ptr = colors->get_as<std::string>("color_mode")) {
-                settings.colorMode = ptr->get();
-            } else {
-                settings.colorMode = "level";
-            }
-
-            // level colors
             if (auto levelColors = colors->get("level"); levelColors && levelColors->is_table()) {
                 for (auto&& [key, node] : *levelColors->as_table()) {
-                    std::string levelKey = std::string(key);
-                    int colorValue = node.is_integer() ? static_cast<int>(node.as_integer()->get()) : 37;
-                    settings.logColors["level_" + levelKey] = colorValue;
+                    std::string levelKey = "level_" + std::string(key);
+                    settings.parsedLogColors[levelKey] = node.is_integer() ? static_cast<int>(node.as_integer()->get()) : 37;
                 }
             }
-
-            // context colors
             if (auto contextColors = colors->get("context"); contextColors && contextColors->is_table()) {
                 for (auto&& [key, node] : *contextColors->as_table()) {
-                    std::string ctxKey = std::string(key);
-                    int colorValue = node.is_integer() ? static_cast<int>(node.as_integer()->get()) : 37;
-                    settings.logColors["context_" + ctxKey] = colorValue;
+                    std::string contextKey = "context_" + std::string(key);
+                    settings.parsedLogColors[contextKey] = node.is_integer() ? static_cast<int>(node.as_integer()->get()) : 37;
                 }
             }
-        } else {
-            // default color mode
-            settings.colorMode = "level";
         }
 
-        // ------ contexts section ------
-        if (auto contexts = config["contexts"].as_table()) {
-            for (auto&& [key, node] : *contexts) {
-                std::string ctxName = std::string(key);
-                std::string lvl = node.is_string() ? node.as_string()->get() : "INFO";
-                settings.contextLevels[ctxName] = lvl;
-            }
+        // ✅ Load contexts (precompute array)
+        settings.contextNames.clear();
+        settings.contextIndexMap.clear();
+        settings.contextSeverityArray.fill(0);
+
+        int ctxIndex = 0;
+        for (auto&& [key, node] : *config["contexts"].as_table()) {
+            if (ctxIndex >= MAX_CONTEXTS) break;
+            std::string contextName = std::string(key);
+            settings.contextNames.push_back(contextName);
+            settings.contextIndexMap[contextName] = ctxIndex;
+            settings.contextSeverityArray[ctxIndex] = Logger::getInstance().getSeverity(node.as_string()->get());
+            ++ctxIndex;
         }
+
+        // ✅ Apply precomputed colors
+        precomputeColors(settings);
 
     } catch (const toml::parse_error& err) {
-        std::cerr << "[ERROR] Failed to parse TOML config: " << err.what() << "\n";
+        std::cerr << "[LoggerConfig] Failed to parse TOML config: " << err.what() << "\n";
+        generateDefaultConfig(filepath);
     }
 }
 

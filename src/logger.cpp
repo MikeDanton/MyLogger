@@ -1,4 +1,4 @@
-#include "logger.h"
+#include "logger.hpp"
 #include <logger_config.hpp>
 #include "console_backend.h"
 #include "file_backend.h"
@@ -7,6 +7,7 @@
 #include <iostream>
 #include <condition_variable>
 #include <cstring>
+#include <filesystem>
 
 // Inside Logger class:
 std::condition_variable logCondition;
@@ -31,11 +32,8 @@ Logger::~Logger() {
     }
 }
 
-
 void Logger::init(const std::string& configFile) {
-    LoggerSettings settings = {};
-    LoggerConfig::loadConfig(configFile, settings);
-    this->settings = settings;
+    LoggerConfig::loadOrGenerateConfig(configFile, settings);
 
     // ✅ Add backends based on config
     if (settings.enableConsole) {
@@ -54,45 +52,46 @@ void Logger::addBackend(LogBackend* backend) {
 }
 
 void Logger::log(const char* level, const char* context, const char* message) {
-    // 1) Check global level switch
-    if (!settings.logLevelEnabled[level]) {
-        return; // If this level is OFF globally, skip it.
+    // 1️⃣ Convert log level to index
+    int levelIndex = getLevelIndex(level);
+    if (levelIndex == -1 || !settings.logLevelEnabledArray[levelIndex]) {
+        return; // Skip if level is unknown or disabled
     }
 
-    // 2) Convert log level to numeric severity
-    int msgSeverity = getSeverity(level);
+    // 2️⃣ Get severity for this log level
+    int msgSeverity = settings.logLevelSeveritiesArray[levelIndex];
 
-    // 3) Find context severity threshold (DEFAULT: no restriction)
-    int contextMinSeverity = 0;  // Default: log everything if context is not listed
-    auto it = settings.contextLevels.find(context);
-    if (it != settings.contextLevels.end()) {
-        contextMinSeverity = getSeverity(it->second);
-    }
+    // 3️⃣ Find context severity threshold (DEFAULT: no restriction)
+    int contextIndex = getContextIndex(context);
+    int contextMinSeverity = (contextIndex == -1) ? 0 : settings.contextSeverityArray[contextIndex];
 
-    // 4) Skip if message severity is below the required threshold
+    // 4️⃣ Skip if message severity is below required threshold
     if (msgSeverity < contextMinSeverity) {
         return;
     }
 
+    // 5️⃣ Prepare to enqueue log message
     int currentHead = queueHead.load();
     int next = (currentHead + 1) % MAX_LOG_ENTRIES;
 
     if (next == queueTail.load()) {
-        std::cerr << "Log queue is full! Dropping message.\n";
+        std::cerr << "[Logger] Log queue is full! Dropping message.\n";
         return;
     }
 
+    // 6️⃣ Write log message to queue
     LogMessage& logMsg = logQueue[currentHead];
     strncpy(logMsg.level, level, sizeof(logMsg.level));
     strncpy(logMsg.context, context, sizeof(logMsg.context));
     strncpy(logMsg.message, message, sizeof(logMsg.message));
 
+    // 7️⃣ Apply timestamp if enabled
     if (settings.enableTimestamps) {
         std::time_t now = std::time(nullptr);
-        std::strftime(logMsg.timestamp, sizeof(logMsg.timestamp),
-                      "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+        std::strftime(logMsg.timestamp, sizeof(logMsg.timestamp), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
     }
 
+    // 8️⃣ Move queue forward and notify processing thread
     queueHead.store(next, std::memory_order_release);
     logCondition.notify_one();
 }
@@ -142,10 +141,33 @@ void Logger::flush() {
 }
 
 int Logger::getSeverity(const std::string& level) const {
-    auto it = settings.logLevelSeverities.find(level);
-    if (it != settings.logLevelSeverities.end()) {
-        return it->second;
+    int index = getLevelIndex(level);
+    return (index != -1) ? settings.logLevelSeveritiesArray[index] : 0;
+}
+
+int Logger::getLevelIndex(const std::string& level) const {
+    for (size_t i = 0; i < settings.logLevelNames.size(); i++) {
+        if (settings.logLevelNames[i] == level) return i;
     }
-    // Unknown => treat as severity 0 or skip entirely
-    return 0;
+    return -1;
+}
+
+int Logger::getContextIndex(const std::string& context) const {
+    for (size_t i = 0; i < settings.contextNames.size(); i++) {
+        if (settings.contextNames[i] == context) return i;
+    }
+    return -1;
+}
+
+void Logger::updateSettings(const std::string& configFile) {
+    static std::filesystem::file_time_type lastWriteTime;
+
+    std::filesystem::path configPath = configFile;
+
+    auto currentWriteTime = std::filesystem::last_write_time(configPath);
+    if (currentWriteTime != lastWriteTime) {
+        lastWriteTime = currentWriteTime;
+        std::cerr << "[Logger] Detected config change, reloading...\n";
+        LoggerConfig::loadConfig(configFile, settings);
+    }
 }
