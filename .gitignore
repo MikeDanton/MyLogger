@@ -1,5 +1,17 @@
-# Build files
+# Ignore build directories
 cmake-build-debug/
+cmake-build-release/
+CMakeFiles/
+CMakeCache.txt
+build/
+out/
+
+# Ignore IDE settings
+.idea/
+.vscode/
+*.iml
+
+# Ignore compiled files
 *.o
 *.so
 *.a
@@ -10,19 +22,14 @@ cmake-build-debug/
 bin/
 lib/
 
-# IDE settings
-.idea/
-.vscode/
-*.iml
-
-# Log files
+# Ignore logs
 logs/
 *.log
 
-# Configuration files
-.conf/
-logger.conf
+# Ignore configuration files
+config/
+*.conf
 *.cfg
 
-# Tomplusplus
-.tomplusplus/
+# Ignore external dependencies (like tomlplusplus)
+tomlplusplus/

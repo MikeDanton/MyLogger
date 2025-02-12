@@ -1,6 +1,0 @@
-/home/BoboBaggins/.local/share/JetBrains/Toolbox/apps/clion/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_MAKE_PROGRAM=/home/BoboBaggins/.local/share/JetBrains/Toolbox/apps/clion/bin/ninja/linux/x64/ninja -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G Ninja -S /home/BoboBaggins/CLionProjects/myLogger -B /home/BoboBaggins/CLionProjects/myLogger/cmake-build-release
--- Logging enabled: 
--- Build type: Release
--- Configuring done (0.0s)
--- Generating done (0.0s)
--- Build files have been written to: /home/BoboBaggins/CLionProjects/myLogger/cmake-build-release
