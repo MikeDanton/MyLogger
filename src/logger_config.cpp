@@ -11,14 +11,18 @@ void LoggerConfig::precomputeColors(LoggerSettings& settings) {
 
     for (size_t i = 0; i < settings.logLevelNames.size(); i++) {
         std::string levelKey = "level_" + settings.logLevelNames[i];
-        auto it = settings.parsedLogColors.find(levelKey);
-        settings.logColorArray[i] = (it != settings.parsedLogColors.end()) ? it->second : 37;
+        if (settings.parsedLogColors.count(levelKey)) {
+            settings.logColorArray[i] = settings.parsedLogColors[levelKey];
+            std::cerr << "[DEBUG] Precomputed Level Color: " << settings.logLevelNames[i] << " -> " << settings.logColorArray[i] << "\n";
+        }
     }
 
     for (size_t i = 0; i < settings.contextNames.size(); i++) {
         std::string contextKey = "context_" + settings.contextNames[i];
-        auto it = settings.parsedLogColors.find(contextKey);
-        settings.contextColorArray[i] = (it != settings.parsedLogColors.end()) ? it->second : 37;
+        if (settings.parsedLogColors.count(contextKey)) {
+            settings.contextColorArray[i] = settings.parsedLogColors[contextKey];
+            std::cerr << "[DEBUG] Precomputed Context Color: " << settings.contextNames[i] << " -> " << settings.contextColorArray[i] << "\n";
+        }
     }
 }
 
@@ -35,14 +39,37 @@ void LoggerConfig::loadConfig(const std::string& filepath, LoggerSettings& setti
     try {
         toml::table config = toml::parse_file(filepath);
 
-        // ✅ General settings
-        settings.enableTimestamps = config["general"]["log_timestamps"].value_or(true);
-        settings.enableConsole = config["toggles"]["enable_console"].value_or(true);
-        settings.enableFile = config["toggles"]["enable_file"].value_or(true);
-        settings.enableColors = config["toggles"]["enable_colors"].value_or(false);
-        settings.colorMode = config["colors"]["color_mode"].value_or("level");
+        loadGeneralSettings(config, settings);
+        loadToggles(config, settings);
+        loadLevels(config, settings);
+        loadSeverities(config, settings);
+        loadColors(config, settings);
+        loadContexts(config, settings);
+        precomputeColors(settings);
 
-        // ✅ Load log levels (precompute array)
+        std::cerr << "[Logger] Config loaded successfully!\n";
+    } catch (const toml::parse_error& err) {
+        std::cerr << "[LoggerConfig] Failed to parse TOML config: " << err.what() << "\n";
+        generateDefaultConfig(filepath);
+    }
+}
+
+void LoggerConfig::loadGeneralSettings(const toml::table& config, LoggerSettings& settings) {
+    if (config.contains("general")) {
+        settings.enableTimestamps = config["general"]["log_timestamps"].value_or(settings.enableTimestamps);
+    }
+}
+
+void LoggerConfig::loadToggles(const toml::table& config, LoggerSettings& settings) {
+    if (config.contains("toggles")) {
+        settings.enableConsole = config["toggles"]["enable_console"].value_or(settings.enableConsole);
+        settings.enableFile = config["toggles"]["enable_file"].value_or(settings.enableFile);
+        settings.enableColors = config["toggles"]["enable_colors"].value_or(settings.enableColors);
+    }
+}
+
+void LoggerConfig::loadLevels(const toml::table& config, LoggerSettings& settings) {
+    if (config.contains("levels")) {
         settings.logLevelNames.clear();
         settings.levelIndexMap.clear();
         settings.logLevelEnabledArray.fill(false);
@@ -50,38 +77,66 @@ void LoggerConfig::loadConfig(const std::string& filepath, LoggerSettings& setti
         int index = 0;
         for (auto&& [key, node] : *config["levels"].as_table()) {
             if (index >= MAX_LEVELS) break;
-            std::string levelName = std::string(key); // Convert toml::key to std::string
+            std::string levelName = std::string(key);
             settings.logLevelNames.push_back(levelName);
             settings.levelIndexMap[levelName] = index;
             settings.logLevelEnabledArray[index] = (node.as_string()->get() == "ON");
+
+            std::cerr << "[DEBUG] Loaded Level: " << levelName << " = " << (settings.logLevelEnabledArray[index] ? "ON" : "OFF") << "\n";
+
             ++index;
         }
+    }
+}
 
-        // ✅ Load severities (precompute array)
+void LoggerConfig::loadSeverities(const toml::table& config, LoggerSettings& settings) {
+    if (config.contains("severities")) {
         settings.logLevelSeveritiesArray.fill(0);
         for (size_t i = 0; i < settings.logLevelNames.size(); i++) {
             auto it = config["severities"].as_table()->find(settings.logLevelNames[i]);
-            settings.logLevelSeveritiesArray[i] = (it != config["severities"].as_table()->end()) ? it->second.as_integer()->get() : 0;
+            if (it != config["severities"].as_table()->end()) {
+                settings.logLevelSeveritiesArray[i] = it->second.as_integer()->get();
+                std::cerr << "[DEBUG] Loaded Severity: " << settings.logLevelNames[i] << " = " << settings.logLevelSeveritiesArray[i] << "\n";
+            }
+        }
+    }
+}
+
+void LoggerConfig::loadColors(const toml::table& config, LoggerSettings& settings) {
+    if (config.contains("colors")) {
+        if (auto colorsSection = config["colors"].as_table()) {
+            if (auto cm = colorsSection->get("color_mode"); cm && cm->is_string()) {
+                settings.colorMode = cm->as_string()->get();
+            }
         }
 
-        // ✅ Load colors into temporary storage (`parsedLogColors`)
         settings.parsedLogColors.clear();
+
         if (auto colors = config["colors"].as_table()) {
             if (auto levelColors = colors->get("level"); levelColors && levelColors->is_table()) {
                 for (auto&& [key, node] : *levelColors->as_table()) {
                     std::string levelKey = "level_" + std::string(key);
-                    settings.parsedLogColors[levelKey] = node.is_integer() ? static_cast<int>(node.as_integer()->get()) : 37;
+                    settings.parsedLogColors[levelKey] =
+                        node.is_integer() ? static_cast<int>(node.as_integer()->get()) : 37;
+                    std::cerr << "[DEBUG] Loaded Level Color: " << key
+                              << " = " << settings.parsedLogColors[levelKey] << "\n";
                 }
             }
             if (auto contextColors = colors->get("context"); contextColors && contextColors->is_table()) {
                 for (auto&& [key, node] : *contextColors->as_table()) {
                     std::string contextKey = "context_" + std::string(key);
-                    settings.parsedLogColors[contextKey] = node.is_integer() ? static_cast<int>(node.as_integer()->get()) : 37;
+                    settings.parsedLogColors[contextKey] =
+                        node.is_integer() ? static_cast<int>(node.as_integer()->get()) : 37;
+                    std::cerr << "[DEBUG] Loaded Context Color: " << key
+                              << " = " << settings.parsedLogColors[contextKey] << "\n";
                 }
             }
         }
+    }
+}
 
-        // ✅ Load contexts (precompute array)
+void LoggerConfig::loadContexts(const toml::table& config, LoggerSettings& settings) {
+    if (config.contains("contexts")) {
         settings.contextNames.clear();
         settings.contextIndexMap.clear();
         settings.contextSeverityArray.fill(0);
@@ -92,18 +147,19 @@ void LoggerConfig::loadConfig(const std::string& filepath, LoggerSettings& setti
             std::string contextName = std::string(key);
             settings.contextNames.push_back(contextName);
             settings.contextIndexMap[contextName] = ctxIndex;
-            settings.contextSeverityArray[ctxIndex] = Logger::getInstance().getSeverity(node.as_string()->get());
+
+            auto severityIt = settings.levelIndexMap.find(node.as_string()->get());
+            settings.contextSeverityArray[ctxIndex] = (severityIt != settings.levelIndexMap.end())
+                                                          ? settings.logLevelSeveritiesArray[severityIt->second]
+                                                          : 0;
+
+            std::cerr << "[DEBUG] Loaded Context: " << contextName << " -> Severity: " << settings.contextSeverityArray[ctxIndex] << "\n";
+
             ++ctxIndex;
         }
-
-        // ✅ Apply precomputed colors
-        precomputeColors(settings);
-
-    } catch (const toml::parse_error& err) {
-        std::cerr << "[LoggerConfig] Failed to parse TOML config: " << err.what() << "\n";
-        generateDefaultConfig(filepath);
     }
 }
+
 
 void LoggerConfig::generateDefaultConfig(const std::string& filepath) {
     std::filesystem::path configPath(filepath);
@@ -128,7 +184,6 @@ enable_console = true
 enable_file = true
 enable_colors = true
 
-# This section determines if a level is globally ON/OFF
 [levels]
 VERBOSE = "OFF"
 DEBUG   = "ON"
@@ -137,7 +192,6 @@ WARN    = "ON"
 ERROR   = "ON"
 CRITICAL = "ON"
 
-# The higher (or lower) the number, the more (or less) severe it is.
 [severities]
 VERBOSE   = 1
 DEBUG     = 2

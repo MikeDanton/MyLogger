@@ -1,24 +1,31 @@
 #include "console_backend.hpp"
-#include "logger.hpp"
-#include <cstdio>
 #include <iostream>
+#include <cstdio>
 
-void console_write(const LogMessage* log) {
-    Logger& logger = Logger::getInstance();
-    const LoggerSettings& settings = logger.getSettings();
-
+void ConsoleBackend::write(const LogMessage* log, const LoggerSettings& settings) {
     const char* reset = "\033[0m";
-    std::string colorCode = "\033[37m";  // Default white
+    std::string colorCode = "\033[37m";
 
     if (settings.enableColors) {
-        int colorValue = 37; // Default white
-        int levelIndex = logger.getLevelIndex(log->level);
-        int contextIndex = logger.getContextIndex(log->context);
+        int colorValue = 37;
+
+        int levelIndex   = settings.levelIndexMap.count(log->level)
+                           ? settings.levelIndexMap.at(log->level)
+                           : -1;
+        int contextIndex = settings.contextIndexMap.count(log->context)
+                           ? settings.contextIndexMap.at(log->context)
+                           : -1;
 
         if (settings.colorMode == "context" && contextIndex >= 0) {
             colorValue = settings.contextColorArray[contextIndex];
-        } else if (levelIndex >= 0) {
+        }
+        // 🔹 fallback to level color if context missing
+        else if (levelIndex >= 0) {
             colorValue = settings.logColorArray[levelIndex];
+        }
+
+        if (colorValue < 30 || colorValue > 37) {
+            colorValue = 37;
         }
 
         colorCode = "\033[" + std::to_string(colorValue) + "m";
@@ -32,9 +39,6 @@ void console_write(const LogMessage* log) {
            reset);
 }
 
-void console_flush() {
+void ConsoleBackend::flush() {
     fflush(stdout);
 }
-
-// ✅ Define ConsoleBackend
-LogBackend ConsoleBackend = { console_write, console_flush };

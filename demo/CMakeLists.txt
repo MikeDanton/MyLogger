@@ -13,9 +13,16 @@ else()
     add_definitions(-DLOGGING_ENABLED=1)
 endif()
 
-# ✅ Create the demo executable (Removed taskManager.cpp)
-add_executable(myLoggerApp main.cpp
-        logger_controller.cpp)
+# ✅ Ensure correct include paths
+set(TOML_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/tomlplusplus/include)
+include_directories(${TOML_INCLUDE_DIR})
+
+# ✅ Create the demo executable
+add_executable(myLoggerApp main.cpp)
 
 # ✅ Link against `myLoggerLib`
 target_link_libraries(myLoggerApp PRIVATE myLoggerLib)
+
+# ✅ Debugging Info
+message(STATUS "Demo app logging enabled: ${DEMO_LOGGING_ENABLED}")
+message(STATUS "Demo using Toml++ include: ${TOML_INCLUDE_DIR}")

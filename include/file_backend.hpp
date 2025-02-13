@@ -1,9 +1,20 @@
-#ifndef FILE_BACKEND_H
-#define FILE_BACKEND_H
+#ifndef FILE_BACKEND_HPP
+#define FILE_BACKEND_HPP
 
 #include "logger.hpp"
+#include <fstream>
 
-// ✅ Declare FileBackend so it can be used in other files
-extern LogBackend FileBackend;
+struct FileBackend {
+    FileBackend() = default;
+    FileBackend(const FileBackend&) = delete;
+    FileBackend& operator=(const FileBackend&) = delete;
 
-#endif // FILE_BACKEND_H
+    void setup(const LoggerSettings& settings);
+    void write(const LogMessage* log, [[maybe_unused]] const LoggerSettings& settings);
+    void flush();
+
+private:
+    std::ofstream logFile;
+};
+
+#endif // FILE_BACKEND_HPP

@@ -1,15 +1,23 @@
 #include "file_backend.hpp"
 #include <fstream>
 
-std::ofstream logFile("log.txt", std::ios::app);
-
-void file_write(const LogMessage* log) {
-    logFile << "[" << log->level << "] " << log->context << ": " << log->message << std::endl;
+void FileBackend::setup(const LoggerSettings& settings) {
+    if (settings.enableFile) {
+        logFile.open("log.txt", std::ios::app);
+        if (!logFile) {
+            throw std::runtime_error("[FileBackend] Failed to open log file.");
+        }
+    }
 }
 
-void file_flush() {
-    logFile.flush();
+void FileBackend::write(const LogMessage* log, [[maybe_unused]] const LoggerSettings& settings) {
+    if (logFile.is_open()) {
+        logFile << "[" << log->level << "] " << log->context << ": " << log->message << std::endl;
+    }
 }
 
-// ✅ Define FileBackend (matches the declaration in `file_backend.h`)
-LogBackend FileBackend = { file_write, file_flush };
+void FileBackend::flush() {
+    if (logFile.is_open()) {
+        logFile.flush();
+    }
+}

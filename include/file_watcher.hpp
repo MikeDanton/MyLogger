@@ -3,12 +3,12 @@
 
 #include <string>
 #include <atomic>
+#include <filesystem>
 
-class Logger;
-
+template <typename LoggerType>
 class FileWatcher {
 public:
-    static void watch(Logger& logger, const std::string& configFile, std::atomic<bool>& exitFlag);
+    static void watch(LoggerType& logger, const std::string& configFile, std::atomic<bool>& exitFlag);
 };
 
 #endif // FILE_WATCHER_HPP

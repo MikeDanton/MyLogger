@@ -1,9 +1,15 @@
-#ifndef CONSOLE_BACKEND_H
-#define CONSOLE_BACKEND_H
+#ifndef CONSOLE_BACKEND_HPP
+#define CONSOLE_BACKEND_HPP
 
 #include "logger.hpp"
 
-// ✅ Declare ConsoleBackend so it can be used in other files
-extern LogBackend ConsoleBackend;
+struct ConsoleBackend {
+    void setup([[maybe_unused]] const LoggerSettings& settings) {
+        // ✅ No setup needed for now, but exists to satisfy `Logger::init()`
+    }
 
-#endif // CONSOLE_BACKEND_H
+    void write(const LogMessage* log, const LoggerSettings& settings);
+    void flush();
+};
+
+#endif // CONSOLE_BACKEND_HPP
