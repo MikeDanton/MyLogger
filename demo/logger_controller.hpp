@@ -2,7 +2,6 @@
 #define LOGGER_CONTROLLER_HPP
 
 #include "logger.hpp"
-#include "file_watcher.hpp"
 #include <atomic>
 #include <thread>
 

@@ -1,9 +1,9 @@
 #include "file_watcher.hpp"
-#include "logger.hpp"
 #include <sys/inotify.h>
 #include <unistd.h>
 #include <filesystem>
 #include <iostream>
+#include <logger.hpp>
 
 void FileWatcher::watch(Logger& logger, const std::string& configFile, std::atomic<bool>& exitFlag) {
     int fd = inotify_init();
@@ -33,8 +33,7 @@ void FileWatcher::watch(Logger& logger, const std::string& configFile, std::atom
 
         struct inotify_event* event = (struct inotify_event*) buffer;
         if (event->mask & IN_MODIFY && configPath.filename() == event->name) {
-            std::cerr << "[Logger] Config file modified, reloading...\n";
-            logger.updateSettings(configFile);
+            logger.updateSettings(configFile);  // ✅ Apply new settings immediately
         }
     }
 

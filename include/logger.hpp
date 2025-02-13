@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <vector>
 #include <array>
+#include <condition_variable>
 
 #define MAX_LEVELS 16
 #define MAX_CONTEXTS 16
@@ -71,6 +72,7 @@ private:
     int backendCount;
     LoggerSettings settings;
 
+    std::condition_variable logCondition;
     LogMessage logQueue[MAX_LOG_ENTRIES];
     std::atomic<int> queueHead;
     std::atomic<int> queueTail;

@@ -1,4 +1,5 @@
 #include "logger_controller.hpp"
+#include "file_watcher.hpp"
 #include <chrono>
 #include <iostream>
 

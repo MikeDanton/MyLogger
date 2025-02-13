@@ -9,10 +9,6 @@
 #include <cstring>
 #include <filesystem>
 
-// Inside Logger class:
-std::condition_variable logCondition;
-
-
 Logger& Logger::getInstance() {
     static Logger instance;
     return instance;
@@ -161,13 +157,12 @@ int Logger::getContextIndex(const std::string& context) const {
 
 void Logger::updateSettings(const std::string& configFile) {
     static std::filesystem::file_time_type lastWriteTime;
-
     std::filesystem::path configPath = configFile;
 
     auto currentWriteTime = std::filesystem::last_write_time(configPath);
     if (currentWriteTime != lastWriteTime) {
         lastWriteTime = currentWriteTime;
-        std::cerr << "[Logger] Detected config change, reloading...\n";
+
         LoggerConfig::loadConfig(configFile, settings);
     }
 }
