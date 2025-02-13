@@ -6,6 +6,9 @@
 #include <unordered_map>
 #include <vector>
 #include <toml++/toml.hpp>
+#include <iostream>
+#include <fstream>
+#include <filesystem>
 
 #define MAX_LEVELS 16
 #define MAX_CONTEXTS 16
@@ -16,6 +19,10 @@ struct LoggerSettings {
     bool enableFile = true;
     bool enableColors = false;
     bool enableTimestamps = true;
+    bool hideLevelTag = false;   // NEW: Option to hide level tag
+    bool hideContextTag = false; // NEW: Option to hide context tag
+    std::string timestampFormat = "ISO"; // NEW: Format for timestamps
+    std::string logFormat = "plain"; // NEW: Log formatting type
 
     std::array<bool, MAX_LEVELS> logLevelEnabledArray = {};
     std::array<int, MAX_LEVELS> logLevelSeveritiesArray = {};

@@ -1,14 +1,16 @@
 #include "console_backend.hpp"
 #include <iostream>
 #include <cstdio>
+#include <iomanip>
+#include <ctime>
 
 void ConsoleBackend::write(const LogMessage* log, const LoggerSettings& settings) {
     const char* reset = "\033[0m";
     std::string colorCode = "\033[37m";
 
+    // Determine color based on context or level
     if (settings.enableColors) {
         int colorValue = 37;
-
         auto levelIt = settings.levelIndexMap.find(log->level);
         auto contextIt = settings.contextIndexMap.find(log->context);
 
@@ -21,6 +23,7 @@ void ConsoleBackend::write(const LogMessage* log, const LoggerSettings& settings
             colorValue = settings.logColorArray[levelIndex];
         }
 
+        // Validate color range
         if (colorValue < 30 || colorValue > 37) {
             colorValue = 37;
         }
@@ -28,7 +31,34 @@ void ConsoleBackend::write(const LogMessage* log, const LoggerSettings& settings
         colorCode = "\033[" + std::to_string(colorValue) + "m";
     }
 
-    std::cout << colorCode << "[" << log->level << "] " << log->context << ": " << log->message << reset << "\n";
+    std::ostringstream logEntry;
+
+    // Timestamp Handling
+    if (settings.enableTimestamps) {
+        std::time_t now = std::time(nullptr);
+        std::tm* timeinfo = std::localtime(&now);
+
+        if (settings.timestampFormat == "ISO") {
+            logEntry << std::put_time(timeinfo, "%Y-%m-%dT%H:%M:%S") << " ";
+        } else if (settings.timestampFormat == "short") {
+            logEntry << std::put_time(timeinfo, "%H:%M:%S") << " ";
+        } else if (settings.timestampFormat == "epoch") {
+            logEntry << now << " ";
+        }
+    }
+
+    // Level & Context Handling
+    if (!settings.hideLevelTag) {
+        logEntry << "[" << log->level << "] ";
+    }
+    if (!settings.hideContextTag) {
+        logEntry << log->context << ": ";
+    }
+
+    logEntry << log->message;
+
+    // Print log with color
+    std::cout << colorCode << logEntry.str() << reset << "\n";
 }
 
 void ConsoleBackend::flush() {

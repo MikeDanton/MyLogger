@@ -63,6 +63,8 @@ void LoggerConfig::loadConfig(const std::string& filepath, LoggerSettings& setti
 void LoggerConfig::loadGeneralSettings(const toml::table& config, LoggerSettings& settings) {
     if (config.contains("general")) {
         settings.enableTimestamps = config["general"]["log_timestamps"].value_or(settings.enableTimestamps);
+        settings.timestampFormat = config["general"]["timestamp_format"].value_or(settings.timestampFormat);
+        settings.logFormat = config["general"]["log_format"].value_or(settings.logFormat);
     }
 }
 
@@ -71,6 +73,8 @@ void LoggerConfig::loadToggles(const toml::table& config, LoggerSettings& settin
         settings.enableConsole = config["toggles"]["enable_console"].value_or(settings.enableConsole);
         settings.enableFile = config["toggles"]["enable_file"].value_or(settings.enableFile);
         settings.enableColors = config["toggles"]["enable_colors"].value_or(settings.enableColors);
+        settings.hideLevelTag = config["toggles"]["hide_level_tag"].value_or(settings.hideLevelTag);
+        settings.hideContextTag = config["toggles"]["hide_context_tag"].value_or(settings.hideContextTag);
     }
 }
 
@@ -166,18 +170,21 @@ void LoggerConfig::generateDefaultConfig(const std::string& filepath) {
     }
 
     file << R"(
-# Generated example logger.conf
 [general]
 log_directory = "logs/"
 log_filename_format = "log_%Y-%m-%d_%H-%M-%S.txt"
 log_rotation_days = 7
 flush_mode = "auto"
 log_timestamps = true
+timestamp_format = "ISO" # Options: ISO, short, epoch
+log_format = "plain"  # Options: plain, json, key-value
 
 [toggles]
 enable_console = true
 enable_file = true
 enable_colors = true
+hide_level_tag = false
+hide_context_tag = false
 
 [levels]
 VERBOSE = "OFF"
