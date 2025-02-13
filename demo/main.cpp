@@ -6,7 +6,7 @@
 #include "logger_controller.hpp"
 
 int main() {
-    LoggerSettings settings;
+    auto settings = std::make_shared<LoggerSettings>();  // ✅ Use shared_ptr
     ConsoleBackend consoleBackend;
     FileBackend fileBackend;
 

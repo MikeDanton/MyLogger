@@ -9,18 +9,15 @@ void ConsoleBackend::write(const LogMessage* log, const LoggerSettings& settings
     if (settings.enableColors) {
         int colorValue = 37;
 
-        int levelIndex   = settings.levelIndexMap.count(log->level)
-                           ? settings.levelIndexMap.at(log->level)
-                           : -1;
-        int contextIndex = settings.contextIndexMap.count(log->context)
-                           ? settings.contextIndexMap.at(log->context)
-                           : -1;
+        auto levelIt = settings.levelIndexMap.find(log->level);
+        auto contextIt = settings.contextIndexMap.find(log->context);
+
+        int levelIndex = (levelIt != settings.levelIndexMap.end()) ? levelIt->second : -1;
+        int contextIndex = (contextIt != settings.contextIndexMap.end()) ? contextIt->second : -1;
 
         if (settings.colorMode == "context" && contextIndex >= 0) {
             colorValue = settings.contextColorArray[contextIndex];
-        }
-        // 🔹 fallback to level color if context missing
-        else if (levelIndex >= 0) {
+        } else if (levelIndex >= 0) {
             colorValue = settings.logColorArray[levelIndex];
         }
 
@@ -31,14 +28,12 @@ void ConsoleBackend::write(const LogMessage* log, const LoggerSettings& settings
         colorCode = "\033[" + std::to_string(colorValue) + "m";
     }
 
-    printf("%s[%s] %s: %s%s\n",
-           colorCode.c_str(),
-           log->level,
-           log->context,
-           log->message,
-           reset);
+    std::cout << colorCode << "[" << log->level << "] " << log->context << ": " << log->message << reset << "\n";
 }
 
 void ConsoleBackend::flush() {
-    fflush(stdout);
+    static std::atomic<int> flushCounter = 0;
+    if (++flushCounter % 100 == 0) {
+        std::cout.flush();
+    }
 }

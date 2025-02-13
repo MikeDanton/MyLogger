@@ -6,11 +6,14 @@
 #include <unordered_map>
 #include <vector>
 #include <toml++/toml.hpp>
+#include <iostream>
+#include <fstream>
+#include <filesystem>
 
 #define MAX_LEVELS 16
 #define MAX_CONTEXTS 16
 
-// ✅ LoggerSettings struct that holds configuration values
+// LoggerSettings struct that holds configuration values
 struct LoggerSettings {
     bool enableConsole = true;
     bool enableFile = true;
@@ -32,22 +35,16 @@ struct LoggerSettings {
 
     std::string colorMode = "level";
 
-    LoggerSettings() {
-        logLevelEnabledArray.fill(true);
-        logLevelSeveritiesArray.fill(0);
-        logColorArray.fill(37);
-        contextColorArray.fill(37);
-        contextSeverityArray.fill(0);
-    }
+    LoggerSettings();
 };
 
-// ✅ LoggerConfig class responsible for loading & managing settings
+// LoggerConfig class responsible for loading & managing settings
 class LoggerConfig {
 public:
-    static void precomputeColors(LoggerSettings& settings);
     static void loadOrGenerateConfig(const std::string& filepath, LoggerSettings& settings);
     static void loadConfig(const std::string& filepath, LoggerSettings& settings);
     static void generateDefaultConfig(const std::string& filepath);
+    static void precomputeColors(LoggerSettings& settings);
 
 private:
     static void loadGeneralSettings(const toml::table& config, LoggerSettings& settings);

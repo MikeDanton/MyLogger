@@ -5,23 +5,29 @@
 #include <iostream>
 #include <filesystem>
 
+LoggerSettings::LoggerSettings() {
+    logLevelEnabledArray.fill(true);
+    logLevelSeveritiesArray.fill(0);
+    logColorArray.fill(37);
+    contextColorArray.fill(37);
+    contextSeverityArray.fill(0);
+}
+
 void LoggerConfig::precomputeColors(LoggerSettings& settings) {
     settings.logColorArray.fill(37);   // Default white
     settings.contextColorArray.fill(37); // Default white
 
     for (size_t i = 0; i < settings.logLevelNames.size(); i++) {
-        std::string levelKey = "level_" + settings.logLevelNames[i];
-        if (settings.parsedLogColors.count(levelKey)) {
-            settings.logColorArray[i] = settings.parsedLogColors[levelKey];
-            std::cerr << "[DEBUG] Precomputed Level Color: " << settings.logLevelNames[i] << " -> " << settings.logColorArray[i] << "\n";
+        auto it = settings.parsedLogColors.find("level_" + settings.logLevelNames[i]);
+        if (it != settings.parsedLogColors.end()) {
+            settings.logColorArray[i] = it->second;
         }
     }
 
     for (size_t i = 0; i < settings.contextNames.size(); i++) {
-        std::string contextKey = "context_" + settings.contextNames[i];
-        if (settings.parsedLogColors.count(contextKey)) {
-            settings.contextColorArray[i] = settings.parsedLogColors[contextKey];
-            std::cerr << "[DEBUG] Precomputed Context Color: " << settings.contextNames[i] << " -> " << settings.contextColorArray[i] << "\n";
+        auto it = settings.parsedLogColors.find("context_" + settings.contextNames[i]);
+        if (it != settings.parsedLogColors.end()) {
+            settings.contextColorArray[i] = it->second;
         }
     }
 }
@@ -103,33 +109,22 @@ void LoggerConfig::loadSeverities(const toml::table& config, LoggerSettings& set
 }
 
 void LoggerConfig::loadColors(const toml::table& config, LoggerSettings& settings) {
-    if (config.contains("colors")) {
-        if (auto colorsSection = config["colors"].as_table()) {
-            if (auto cm = colorsSection->get("color_mode"); cm && cm->is_string()) {
-                settings.colorMode = cm->as_string()->get();
-            }
-        }
+    if (!config.contains("colors")) return;
 
-        settings.parsedLogColors.clear();
+    auto colorsSection = config["colors"].as_table();
+    if (!colorsSection) return;
 
-        if (auto colors = config["colors"].as_table()) {
-            if (auto levelColors = colors->get("level"); levelColors && levelColors->is_table()) {
-                for (auto&& [key, node] : *levelColors->as_table()) {
-                    std::string levelKey = "level_" + std::string(key);
-                    settings.parsedLogColors[levelKey] =
-                        node.is_integer() ? static_cast<int>(node.as_integer()->get()) : 37;
-                    std::cerr << "[DEBUG] Loaded Level Color: " << key
-                              << " = " << settings.parsedLogColors[levelKey] << "\n";
-                }
-            }
-            if (auto contextColors = colors->get("context"); contextColors && contextColors->is_table()) {
-                for (auto&& [key, node] : *contextColors->as_table()) {
-                    std::string contextKey = "context_" + std::string(key);
-                    settings.parsedLogColors[contextKey] =
-                        node.is_integer() ? static_cast<int>(node.as_integer()->get()) : 37;
-                    std::cerr << "[DEBUG] Loaded Context Color: " << key
-                              << " = " << settings.parsedLogColors[contextKey] << "\n";
-                }
+    if (auto cm = colorsSection->get("color_mode"); cm && cm->is_string()) {
+        settings.colorMode = cm->as_string()->get();
+    }
+
+    settings.parsedLogColors.clear();
+
+    for (const auto& category : {"level", "context"}) {
+        if (auto categoryColors = colorsSection->get(category); categoryColors && categoryColors->is_table()) {
+            for (auto&& [key, node] : *categoryColors->as_table()) {
+                std::string fullKey = std::string(category) + "_" + std::string(key);
+                settings.parsedLogColors[fullKey] = node.is_integer() ? node.as_integer()->get() : 37;
             }
         }
     }
