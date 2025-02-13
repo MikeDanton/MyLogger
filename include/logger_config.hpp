@@ -6,9 +6,6 @@
 #include <unordered_map>
 #include <vector>
 #include <toml++/toml.hpp>
-#include <iostream>
-#include <fstream>
-#include <filesystem>
 
 #define MAX_LEVELS 16
 #define MAX_CONTEXTS 16
