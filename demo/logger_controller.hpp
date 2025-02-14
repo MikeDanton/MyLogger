@@ -69,8 +69,10 @@ template <typename LoggerType>
 void LoggerController<LoggerType>::threadedLogging() {
     while (!exitFlag.load()) {
         std::thread logThread([&]() {
+            LoggerType& _logger = logger; // ✅ Rename lambda capture variable
+
             for (int i = 0; i < 5; i++) {
-                logger.log("INFO", "MULTI_THREAD", ("Threaded log #" + std::to_string(i)).c_str());
+                _logger.log("INFO", "MULTI_THREAD", ("Threaded log #" + std::to_string(i)).c_str());
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
             }
         });

@@ -1,161 +1,110 @@
 #ifndef LOGGER_HPP
 #define LOGGER_HPP
 
+#include "logger_core.hpp"
 #include "logger_config.hpp"
-#include <algorithm>
-#include <atomic>
-#include <mutex>
-#include <thread>
-#include <string>
-#include <unordered_map>
-#include <array>
-#include <condition_variable>
+#include <memory>
 #include <tuple>
 #include <iostream>
-#include <cstring>
-#include <filesystem>
 
-#define MAX_LOG_ENTRIES 1024
-#define FLUSH_THRESHOLD 100
+// ✅ Struct to Hold Multiple Backends
+template <typename... Backends>
+struct LoggerBackends {
+    std::tuple<Backends&...> backends;
 
-// Log message structure
-struct LogMessage {
-    char level[16]{};
-    char context[64]{};
-    char message[256]{};
-    char timestamp[24]{};
+    explicit LoggerBackends(Backends&... backends) : backends(std::tie(backends...)) {}
+
+    void dispatchLog(const LogMessage& logMsg, const LoggerSettings& settings) {
+        std::apply([&](auto&... backend) {
+            ((backend.write(logMsg, settings)), ...);
+        }, backends);
+    }
 };
 
-// Templated Logger class
-template <typename... Backends>
+// ✅ Logger Template (Now Uses LoggerCore & Struct-Based Backends)
+template <typename Backends>
 class Logger {
 public:
-    explicit Logger(std::shared_ptr<LoggerSettings> settings, Backends&... backends);
+    explicit Logger(std::shared_ptr<LoggerSettings> settings, Backends& backends);
 
     void init(const std::string& configFile = "config/logger.conf");
     void log(const char* level, const char* context, const char* message);
     void flush();
     void updateSettings(const std::string& configFile);
-    void processQueue();
 
 private:
     std::shared_ptr<LoggerSettings> settings;
-    std::tuple<Backends&...> backends;
-    std::atomic<int> queueHead{0}, queueTail{0};
-    LogMessage logQueue[MAX_LOG_ENTRIES]{};
-    std::mutex mutex;
-    std::condition_variable logCondition;
-    std::thread logThread;
-    std::atomic<bool> exitFlag{false};
-    static std::atomic<int> flushCounter;
+    Backends& backends;
+    LoggerCore<Backends> logCore;
 
-    void getTimestamp(char* buffer, size_t size);
-
-    template <size_t... I>
-    void dispatchLog(const LogMessage& logMsg, std::index_sequence<I...>);
+    bool shouldLog(const char* level, const char* context) const;
 };
 
-// Static variable for flushing control
-template <typename... Backends>
-std::atomic<int> Logger<Backends...>::flushCounter = 0;
+// ✅ Constructor Implementation
+template <typename Backends>
+Logger<Backends>::Logger(std::shared_ptr<LoggerSettings> settings, Backends& backends)
+    : settings(std::move(settings)), backends(backends), logCore() {}
 
-// Logger Constructor
-template <typename... Backends>
-Logger<Backends...>::Logger(std::shared_ptr<LoggerSettings> settings, Backends&... backends)
-    : settings(std::move(settings)),
-      backends(std::tie(backends...)),
-      logThread(&Logger::processQueue, this) {}
-
-template <typename... Backends>
-void Logger<Backends...>::init(const std::string& configFile) {
+// ✅ Initialize Logger and Pass Settings to Core
+template <typename Backends>
+void Logger<Backends>::init(const std::string& configFile) {
     LoggerConfig::loadOrGenerateConfig(configFile, *settings);
+    logCore.setBackends(backends, *settings); // Ensure backends are linked to LoggerCore
 
     std::apply([&](auto&... backend) {
         ((backend.setup(*settings)), ...);
-    }, backends);
+    }, backends.backends);
 }
 
-template <typename... Backends>
-void Logger<Backends...>::updateSettings(const std::string& configFile) {
+// ✅ Update Configuration
+template <typename Backends>
+void Logger<Backends>::updateSettings(const std::string& configFile) {
     LoggerConfig::loadConfig(configFile, *settings);
 }
 
-// Generate timestamp in ISO format: YYYY-MM-DD HH:MM:SS
-template <typename... Backends>
-void Logger<Backends...>::getTimestamp(char* buffer, size_t size) {
-    std::time_t now = std::time(nullptr);
-    std::strftime(buffer, size, "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+// ✅ Determine if a Log Message Should Be Logged
+template <typename Backends>
+bool Logger<Backends>::shouldLog(const char* level, const char* context) const {
+    if (!settings) return false;
+
+    int levelIndex = settings->config.levels.levelIndexMap.contains(level)
+                        ? settings->config.levels.levelIndexMap.at(level)
+                        : -1;
+
+    int contextIndex = settings->config.contexts.contextIndexMap.contains(context)
+                        ? settings->config.contexts.contextIndexMap.at(context)
+                        : -1;
+
+    if (levelIndex == -1 || !settings->config.levels.enabledArray[levelIndex]) return false;
+
+    int msgSeverity = settings->config.levels.severitiesArray[levelIndex];
+    int minContextSeverity = (contextIndex != -1)
+                                ? settings->config.contexts.contextSeverityArray[contextIndex]
+                                : 0;
+
+    return msgSeverity >= minContextSeverity;
 }
 
-// Logging function with improved lookup and formatting
-template <typename... Backends>
-void Logger<Backends...>::log(const char* level, const char* context, const char* message) {
-    int levelIndex = settings->levelIndexMap.contains(level) ? settings->levelIndexMap.at(level) : -1;
-    int contextIndex = settings->contextIndexMap.contains(context) ? settings->contextIndexMap.at(context) : -1;
+// ✅ Logging Function
+template <typename Backends>
+void Logger<Backends>::log(const char* level, const char* context, const char* message) {
+    if (!shouldLog(level, context)) return;
 
-    if (levelIndex == -1 || !settings->logLevelEnabledArray[levelIndex]) return;
+    LogMessage logMsg{
+        level,
+        context,
+        message,
+        settings->config.format.enableTimestamps ?
+            getCurrentTimestamp(settings->config.format.timestampFormat) : ""
+    };
 
-    int msgSeverity = settings->logLevelSeveritiesArray[levelIndex];
-    int minContextSeverity = (contextIndex != -1) ? settings->contextSeverityArray[contextIndex] : 0;
-    if (msgSeverity < minContextSeverity) return;
-
-    int currentHead = queueHead.load();
-    int next = (currentHead + 1) % MAX_LOG_ENTRIES;
-    if (next == queueTail.load()) {
-        std::cerr << "[Logger] Log queue is full! Dropping message.\n";
-        return;
-    }
-
-    LogMessage& logMsg = logQueue[currentHead];
-    strncpy(logMsg.level, level, sizeof(logMsg.level));
-    strncpy(logMsg.context, context, sizeof(logMsg.context));
-    strncpy(logMsg.message, message, sizeof(logMsg.message));
-
-    if (settings->enableTimestamps) {
-        getTimestamp(logMsg.timestamp, sizeof(logMsg.timestamp));
-    } else {
-        logMsg.timestamp[0] = '\0';  // Empty timestamp if disabled
-    }
-
-    queueHead.store(next, std::memory_order_release);
-    logCondition.notify_one();
+    logCore.enqueueLog(std::move(logMsg), *settings);
 }
 
-// Process log queue efficiently
-template <typename... Backends>
-void Logger<Backends...>::processQueue() {
-    while (!exitFlag.load()) {
-        std::unique_lock<std::mutex> lock(mutex);
-        logCondition.wait(lock, [this] { return queueHead.load() != queueTail.load() || exitFlag.load(); });
-
-        if (exitFlag.load()) break;
-
-        std::vector<LogMessage> logs;
-        while (queueHead.load() != queueTail.load() && logs.size() < 10) {
-            logs.push_back(logQueue[queueTail.load()]);
-            queueTail.store((queueTail.load() + 1) % MAX_LOG_ENTRIES, std::memory_order_release);
-        }
-        lock.unlock();
-
-        for (const auto& log : logs) {
-            dispatchLog(log, std::index_sequence_for<Backends...>{});
-        }
-    }
-}
-
-// Dispatch logs to all registered backends
-template <typename... Backends>
-template <size_t... I>
-void Logger<Backends...>::dispatchLog(const LogMessage& logMsg, std::index_sequence<I...>) {
-    (std::get<I>(backends).write(&logMsg, *settings), ...);
-}
-
-// Flush logs periodically
-template <typename... Backends>
-void Logger<Backends...>::flush() {
-    if (++flushCounter % FLUSH_THRESHOLD == 0) {
-        std::cout.flush();
-    }
+// ✅ Flush Logs and Process Queue
+template <typename Backends>
+void Logger<Backends>::flush() {
+    logCore.processQueue();
 }
 
 #endif // LOGGER_HPP

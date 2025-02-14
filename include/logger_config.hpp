@@ -6,53 +6,82 @@
 #include <unordered_map>
 #include <vector>
 #include <toml++/toml.hpp>
-#include <iostream>
-#include <fstream>
-#include <filesystem>
 
 #define MAX_LEVELS 16
 #define MAX_CONTEXTS 16
 
-// LoggerSettings struct that holds configuration values
 struct LoggerSettings {
-    bool enableConsole = true;
-    bool enableFile = true;
-    bool enableColors = false;
-    bool enableTimestamps = true;
-    bool hideLevelTag = false;   // NEW: Option to hide level tag
-    bool hideContextTag = false; // NEW: Option to hide context tag
-    std::string timestampFormat = "ISO"; // NEW: Format for timestamps
-    std::string logFormat = "plain"; // NEW: Log formatting type
+    struct General {
+        std::string logDirectory = "logs/";
+        std::string logFilenameFormat = "log_%Y-%m-%d_%H-%M-%S.txt";
+        int logRotationDays = 7;
+        std::string flushMode = "auto";
+    };
 
-    std::array<bool, MAX_LEVELS> logLevelEnabledArray = {};
-    std::array<int, MAX_LEVELS> logLevelSeveritiesArray = {};
-    std::array<int, MAX_LEVELS> logColorArray = {};
-    std::array<int, MAX_CONTEXTS> contextColorArray = {};
-    std::array<int, MAX_CONTEXTS> contextSeverityArray = {};
+    struct Format {
+        bool enableTimestamps = true;
+        std::string timestampFormat = "ISO";
+        std::string logFormat = "plain";
+    };
 
-    std::unordered_map<std::string, int> levelIndexMap;
-    std::unordered_map<std::string, int> contextIndexMap;
-    std::unordered_map<std::string, int> parsedLogColors;
+    struct Backends {
+        bool enableConsole = true;
+        bool enableFile = true;
+    };
 
-    std::vector<std::string> logLevelNames;
-    std::vector<std::string> contextNames;
+    struct Display {
+        bool enableColors = true;
+        bool hideLevelTag = false;
+        bool hideContextTag = false;
+    };
 
-    std::string colorMode = "level";
+    struct Levels {
+        std::array<bool, MAX_LEVELS> enabledArray = {};
+        std::array<int, MAX_LEVELS> severitiesArray = {};
+        std::unordered_map<std::string, int> levelIndexMap;
+        std::vector<std::string> levelNames;
+    };
+
+    struct Colors {
+        std::string colorMode = "level";
+        std::array<int, MAX_LEVELS> logColorArray = {};
+        std::array<int, MAX_CONTEXTS> contextColorArray = {};
+        std::unordered_map<std::string, int> parsedLogColors;
+    };
+
+    struct Contexts {
+        std::unordered_map<std::string, int> contextIndexMap;
+        std::array<int, MAX_CONTEXTS> contextSeverityArray = {};
+        std::vector<std::string> contextNames;
+    };
+
+    // ✅ Grouping settings into a `Config` struct
+    struct Config {
+        General general;
+        Format format;
+        Backends backends;
+        Display display;
+        Levels levels;
+        Colors colors;
+        Contexts contexts;
+    } config;
 
     LoggerSettings();
 };
 
-// LoggerConfig class responsible for loading & managing settings
 class LoggerConfig {
 public:
+    static void printConfigState(const LoggerSettings& settings);
     static void loadOrGenerateConfig(const std::string& filepath, LoggerSettings& settings);
     static void loadConfig(const std::string& filepath, LoggerSettings& settings);
     static void generateDefaultConfig(const std::string& filepath);
     static void precomputeColors(LoggerSettings& settings);
 
 private:
-    static void loadGeneralSettings(const toml::table& config, LoggerSettings& settings);
-    static void loadToggles(const toml::table& config, LoggerSettings& settings);
+    static void loadGeneral(const toml::table& config, LoggerSettings& settings);
+    static void loadFormat(const toml::table& config, LoggerSettings& settings);
+    static void loadBackends(const toml::table& config, LoggerSettings& settings);
+    static void loadDisplay(const toml::table& config, LoggerSettings& settings);
     static void loadLevels(const toml::table& config, LoggerSettings& settings);
     static void loadSeverities(const toml::table& config, LoggerSettings& settings);
     static void loadColors(const toml::table& config, LoggerSettings& settings);

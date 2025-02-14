@@ -1,22 +1,26 @@
-#include <console_backend.hpp>
-#include <file_backend.hpp>
-#include <iostream>
-
 #include "logger.hpp"
 #include "logger_controller.hpp"
+#include "console_backend.hpp"
+#include "file_backend.hpp"
 
 int main() {
-    auto settings = std::make_shared<LoggerSettings>();  // ✅ Use shared_ptr
+    auto settings = std::make_shared<LoggerSettings>();
+
     ConsoleBackend consoleBackend;
     FileBackend fileBackend;
 
-    Logger<ConsoleBackend, FileBackend> logger(settings, consoleBackend, fileBackend);
-    LoggerController<Logger<ConsoleBackend, FileBackend>> controller(logger);
+    // ✅ Structured Backend Management
+    LoggerBackends<ConsoleBackend, FileBackend> backends(consoleBackend, fileBackend);
 
-    controller.start();
+    // ✅ Logger Now Uses a Struct for Backends
+    Logger<decltype(backends)> logger(settings, backends);
+
+    // ✅ Use `LoggerController` for better testing
+    LoggerController loggerController(logger);
+    loggerController.start();
 
     std::cin.get();  // Wait for user input to stop
 
-    controller.stop();
+    loggerController.stop();
     return 0;
 }

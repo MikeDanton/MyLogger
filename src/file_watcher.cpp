@@ -43,4 +43,4 @@ void FileWatcher<LoggerType>::watch(LoggerType& logger, const std::string& confi
     close(fd);
 }
 
-template class FileWatcher<Logger<ConsoleBackend, FileBackend>>;
+template class FileWatcher<Logger<LoggerBackends<ConsoleBackend, FileBackend>>>;
