@@ -1,11 +1,9 @@
 #ifndef LOGGER_CONTROLLER_HPP
 #define LOGGER_CONTROLLER_HPP
 
-#include "logger.hpp"
-#include "file_watcher.hpp"
+#include "my_logger.hpp"
 #include <atomic>
 #include <thread>
-#include <iostream>
 
 template <typename LoggerType>
 class LoggerController {
@@ -20,19 +18,19 @@ private:
     void periodicLogging();
     void threadedLogging();
 
-    LoggerType& logger;
+    LoggerType& logger;  // ✅ Fix: Explicit reference type
     std::atomic<bool> exitFlag;
     std::thread logThread;
     std::thread multiThreadedLogger;
     std::thread configWatcher;
 };
 
-// ✅ Move implementations here (instead of a separate .cpp file)
-
+// ✅ Constructor Implementation
 template <typename LoggerType>
 LoggerController<LoggerType>::LoggerController(LoggerType& logger)
     : logger(logger), exitFlag(false) {}
 
+// ✅ Destructor (RAII-based cleanup)
 template <typename LoggerType>
 LoggerController<LoggerType>::~LoggerController() {
     stop();
@@ -40,42 +38,51 @@ LoggerController<LoggerType>::~LoggerController() {
 
 template <typename LoggerType>
 void LoggerController<LoggerType>::start() {
-    logger.init();
+    std::cout << "[LoggerController] Starting logger threads...\n";
+
     logThread = std::thread(&LoggerController::periodicLogging, this);
     multiThreadedLogger = std::thread(&LoggerController::threadedLogging, this);
-    configWatcher = std::thread(&FileWatcher<LoggerType>::watch,
+
+    std::cout << "[LoggerController] Starting FileWatcher thread...\n";
+    configWatcher = std::thread(&FileWatcher<std::decay_t<LoggerType>>::watch,
                                 std::ref(logger),
-                                "config/logger.conf",
+                                LoggerType::CONFIG_FILE, // ✅ Fetch path from Logger
                                 std::ref(exitFlag));
+
+    std::cout << "[LoggerController] All threads started!\n";
 }
 
+// ✅ Stop Logging Threads Safely
 template <typename LoggerType>
 void LoggerController<LoggerType>::stop() {
     exitFlag.store(true);
+
     if (logThread.joinable()) logThread.join();
     if (multiThreadedLogger.joinable()) multiThreadedLogger.join();
     if (configWatcher.joinable()) configWatcher.join();
 }
 
+// ✅ Periodic Logging Thread (Heartbeat Logs)
 template <typename LoggerType>
 void LoggerController<LoggerType>::periodicLogging() {
     while (!exitFlag.load()) {
-        logger.log("INFO", "GENERAL", "Heartbeat log...");
+        logger.log("INFO", "GENERAL", "Heartbeat log..."); // ✅ Check if this prints
         std::this_thread::sleep_for(std::chrono::seconds(3));
     }
 }
 
+// ✅ Multi-threaded Logging Simulation
 template <typename LoggerType>
 void LoggerController<LoggerType>::threadedLogging() {
     while (!exitFlag.load()) {
         std::thread logThread([&]() {
-            LoggerType& _logger = logger; // ✅ Rename lambda capture variable
-
             for (int i = 0; i < 5; i++) {
-                _logger.log("INFO", "MULTI_THREAD", ("Threaded log #" + std::to_string(i)).c_str());
+                logger.log("INFO", "MULTI_THREAD",
+                           ("Threaded log #" + std::to_string(i)).c_str());
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
             }
         });
+
         logThread.join();
         std::this_thread::sleep_for(std::chrono::seconds(3));
     }

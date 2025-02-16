@@ -29,12 +29,12 @@ public:
     ~LoggerCore();
 
     void enqueueLog(LogMessage&& logMsg, const LoggerSettings& settings);
+    void processQueue();
+    void flushQueue();
 
-    // 🔹 Allow setting backends after initialization
     void setBackends(Backends& backends, LoggerSettings& settings);
 
 private:
-    void processQueue();
 
     std::thread logThread;
     std::atomic<bool> exitFlag{false};
@@ -90,8 +90,7 @@ void LoggerCore<Backends>::processQueue() {
         while (queueHead.load() != queueTail.load()) {
             LogMessage logMsg = logQueue[queueTail.load()];
             queueTail.store((queueTail.load() + 1) % MAX_LOG_ENTRIES, std::memory_order_release);
-
-            // 🔹 Dispatch to backends instead of std::cout
+            
             if (m_backends && m_settings) {
                 m_backends->dispatchLog(logMsg, *m_settings);
             }
@@ -132,5 +131,23 @@ inline std::string getCurrentTimestamp(const std::string& format) {
 
     return timestamp.str();
 }
+
+template <typename Backends>
+void LoggerCore<Backends>::flushQueue() {
+    std::cout << "[LoggerCore] Flushing log queue...\n";
+
+    std::unique_lock<std::mutex> lock(mutex);
+    while (queueHead.load() != queueTail.load()) {
+        LogMessage logMsg = logQueue[queueTail.load()];
+        queueTail.store((queueTail.load() + 1) % MAX_LOG_ENTRIES, std::memory_order_release);
+
+        if (m_backends && m_settings) {
+            m_backends->dispatchLog(logMsg, *m_settings);
+        }
+    }
+
+    std::cout << "[LoggerCore] Log queue flushed.\n";
+}
+
 
 #endif // LOGGER_CORE_HPP

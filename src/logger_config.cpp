@@ -83,7 +83,6 @@ void LoggerConfig::loadConfig(const std::string& filepath, LoggerSettings& setti
         loadContexts(config, settings);
         precomputeColors(settings);
 
-        std::cerr << "[Logger] Config loaded successfully!\n";
     } catch (const toml::parse_error& err) {
         std::cerr << "[LoggerConfig] Failed to parse TOML config: " << err.what() << "\n";
         generateDefaultConfig(filepath);
@@ -235,7 +234,9 @@ void LoggerConfig::loadContexts(const toml::table& config, LoggerSettings& setti
 
 void LoggerConfig::generateDefaultConfig(const std::string& filepath) {
     std::filesystem::path configPath(filepath);
-    std::filesystem::create_directories(configPath.parent_path());
+    if (!configPath.parent_path().empty()) {
+        std::filesystem::create_directories(configPath.parent_path());
+    }
     std::ofstream file(filepath);
     if (!file) {
         std::cerr << "Could not create default config file: " << filepath << "\n";

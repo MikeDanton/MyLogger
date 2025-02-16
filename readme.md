@@ -56,35 +56,6 @@ logger.log("INFO", "GENERAL", "This is an info message");
 logger.log("ERROR", "DATABASE", "Database connection failed");
 ```
 
----
-
-## 📊 Benchmarking
-Built-in performance testing with **Google Benchmark**:
-```sh
-mkdir build && cd build
-cmake ..
-make
-./myLoggerBenchmark
-```
-
-### **Benchmark Results**
-#### Logging Performance:
-```
-Benchmark                      Time             CPU   Iterations
-----------------------------------------------------------------
-BM_LoggingPerformance       1200 ns         1100 ns       500000
-```
-
-#### Config File Loading Performance:
-```
---------------------------------------------------------
-Benchmark              Time             CPU   Iterations
---------------------------------------------------------
-BM_LoadConfig       3200 ns         3100 ns       250000
-```
-
----
-
 ## 🚀 Running the Example Program
 ```sh
 mkdir build && cd build
@@ -135,6 +106,4 @@ classDiagram
 ---
 
 👤 **Author**: @BoboBaggins  
-📜 **License**: MIT  
-🔥 **Contributions Welcome!** 🚀
-
+📜 **License**: MIT

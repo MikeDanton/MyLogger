@@ -32,4 +32,4 @@ config/
 *.cfg
 
 # Ignore external dependencies (like tomlplusplus)
-tomlplusplus/
+include/external/toml++/

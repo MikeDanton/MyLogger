@@ -8,7 +8,7 @@
 
 class ConsoleBackend {
 public:
-    void setup(const LoggerSettings&) {}
+    void setup([[maybe_unused]] const LoggerSettings& settings) {}
     void write(const LogMessage& log, const LoggerSettings& settings);
     void flush();
 };

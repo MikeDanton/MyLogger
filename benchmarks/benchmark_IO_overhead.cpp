@@ -7,10 +7,12 @@
 static void BM_FileLogging(benchmark::State& state) {
     auto settings = std::make_shared<LoggerSettings>();
     FileBackend fileBackend;
-    LoggerBackends backends(fileBackend);
-    Logger<decltype(backends)> logger(settings, backends);
 
-    logger.init();  // Ensure file is created
+    // ✅ Explicitly specify the template parameter
+    LoggerBackends<FileBackend> backends(fileBackend);
+
+    // ✅ Explicitly specify Logger template type
+    Logger<FileBackend> logger(settings, fileBackend);
 
     for (auto _ : state) {
         logger.log("INFO", "BENCHMARK", "Testing file logging speed...");
@@ -20,3 +22,4 @@ static void BM_FileLogging(benchmark::State& state) {
 }
 
 BENCHMARK(BM_FileLogging);
+BENCHMARK_MAIN();

@@ -52,6 +52,7 @@ public:
 
     void flush() {
         if (logFile.is_open()) {
+            std::cout << "[FileBackend] Flushing log file: " << logFilePath << "\n";
             logFile.flush();
         }
     }

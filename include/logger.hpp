@@ -7,9 +7,10 @@
 #include <tuple>
 #include <iostream>
 
-// ✅ Struct to Hold Multiple Backends
 template <typename... Backends>
 struct LoggerBackends {
+    static_assert(sizeof...(Backends) > 0, "Logger must have at least one backend.");
+
     std::tuple<Backends&...> backends;
 
     explicit LoggerBackends(Backends&... backends) : backends(std::tie(backends...)) {}
@@ -19,52 +20,59 @@ struct LoggerBackends {
             ((backend.write(logMsg, settings)), ...);
         }, backends);
     }
+
+    void setup(const LoggerSettings& settings) {
+        std::apply([&](auto&... backend) {
+            ((backend.setup(settings)), ...);
+        }, backends);
+    }
 };
 
-// ✅ Logger Template (Now Uses LoggerCore & Struct-Based Backends)
-template <typename Backends>
+template <typename... Backends>
 class Logger {
 public:
-    explicit Logger(std::shared_ptr<LoggerSettings> settings, Backends& backends);
+    explicit Logger(std::shared_ptr<LoggerSettings> settings, Backends&... backends);
 
-    void init(const std::string& configFile = "config/logger.conf");
     void log(const char* level, const char* context, const char* message);
     void flush();
     void updateSettings(const std::string& configFile);
 
+    static constexpr const char* CONFIG_FILE = "config/logger.conf";
+
 private:
     std::shared_ptr<LoggerSettings> settings;
-    Backends& backends;
-    LoggerCore<Backends> logCore;
+    LoggerBackends<Backends...> backends;
+    LoggerCore<LoggerBackends<Backends...>> logCore;
 
     bool shouldLog(const char* level, const char* context) const;
 };
 
-// ✅ Constructor Implementation
-template <typename Backends>
-Logger<Backends>::Logger(std::shared_ptr<LoggerSettings> settings, Backends& backends)
-    : settings(std::move(settings)), backends(backends), logCore() {}
+template <typename... Backends>
+Logger<Backends...> createLogger(Backends&... backends) {
+    auto settings = std::make_shared<LoggerSettings>();
+    return Logger<Backends...>(settings, backends...);
+}
 
-// ✅ Initialize Logger and Pass Settings to Core
-template <typename Backends>
-void Logger<Backends>::init(const std::string& configFile) {
-    LoggerConfig::loadOrGenerateConfig(configFile, *settings);
-    logCore.setBackends(backends, *settings); // Ensure backends are linked to LoggerCore
+template <typename... Backends>
+Logger<Backends...>::Logger(std::shared_ptr<LoggerSettings> settings, Backends&... backends)
+    : settings(std::move(settings)), backends(backends...), logCore() {
+    LoggerConfig::loadOrGenerateConfig(CONFIG_FILE, *this->settings);
+    logCore.setBackends(this->backends, *this->settings);
 
     std::apply([&](auto&... backend) {
-        ((backend.setup(*settings)), ...);
-    }, backends.backends);
+        ((backend.setup(*this->settings)), ...);
+    }, this->backends.backends);
 }
 
 // ✅ Update Configuration
-template <typename Backends>
-void Logger<Backends>::updateSettings(const std::string& configFile) {
+template <typename... Backends>
+void Logger<Backends...>::updateSettings(const std::string& configFile) {
     LoggerConfig::loadConfig(configFile, *settings);
 }
 
 // ✅ Determine if a Log Message Should Be Logged
-template <typename Backends>
-bool Logger<Backends>::shouldLog(const char* level, const char* context) const {
+template <typename... Backends>
+bool Logger<Backends...>::shouldLog(const char* level, const char* context) const {
     if (!settings) return false;
 
     int levelIndex = settings->config.levels.levelIndexMap.contains(level)
@@ -86,8 +94,8 @@ bool Logger<Backends>::shouldLog(const char* level, const char* context) const {
 }
 
 // ✅ Logging Function
-template <typename Backends>
-void Logger<Backends>::log(const char* level, const char* context, const char* message) {
+template <typename... Backends>
+void Logger<Backends...>::log(const char* level, const char* context, const char* message) {
     if (!shouldLog(level, context)) return;
 
     LogMessage logMsg{
@@ -102,8 +110,8 @@ void Logger<Backends>::log(const char* level, const char* context, const char* m
 }
 
 // ✅ Flush Logs and Process Queue
-template <typename Backends>
-void Logger<Backends>::flush() {
+template <typename... Backends>
+void Logger<Backends...>::flush() {
     logCore.processQueue();
 }
 

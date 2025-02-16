@@ -28,7 +28,6 @@ add_library(myLoggerLib STATIC
         src/logger_config.cpp
         src/backends/console_backend.cpp
         src/backends/file_backend.cpp
-        src/file_watcher.cpp
         src/format_module.cpp
         src/color_module.cpp
 )
@@ -36,11 +35,12 @@ add_library(myLoggerLib STATIC
 target_include_directories(myLoggerLib PUBLIC
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/backends>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/external>
         $<INSTALL_INTERFACE:include>
 )
 
 # 🔹 If not using toml++, remove it or set up as needed
-set(TOML_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/tomlplusplus/include)
+set(TOML_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include/external/tomlplusplus)
 add_library(tomlplusplus INTERFACE)
 target_include_directories(tomlplusplus INTERFACE
         $<BUILD_INTERFACE:${TOML_INCLUDE_DIR}>
