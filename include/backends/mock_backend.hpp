@@ -16,7 +16,10 @@ public:
 
     void write(const LogMessage& log, [[maybe_unused]] const LoggerSettings& settings) {
         std::cout << "[MockBackend] Writing log: " << log.message << std::endl;
-        logEntries.push_back(log.timestamp + " [" + log.level + "] " + log.context + ": " + log.message);
+
+        // ✅ Convert char[] to std::string before concatenation
+        std::string logEntry = std::string(log.timestamp) + " [" + log.level + "] " + log.context + ": " + log.message;
+        logEntries.push_back(std::move(logEntry));
 
         std::cout << "[MockBackend] Current log count: " << logEntries.size() << std::endl;
     }

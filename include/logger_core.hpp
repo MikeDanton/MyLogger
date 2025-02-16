@@ -16,9 +16,9 @@
 #include <cstring>
 
 struct LogMessage {
-    char level[16]{};    // ✅ Fixed-size buffer (was `std::string`)
-    char context[32]{};  // ✅ Fixed-size buffer
-    char message[256]{}; // ✅ Fixed-size buffer
+    char level[16]{};
+    char context[32]{};
+    char message[256]{};
     char timestamp[32]{};
 
     void set(const std::string& lvl, const std::string& ctx, const std::string& msg) {
@@ -129,7 +129,6 @@ void LoggerCore<Backends>::processQueue() {
     }
 }
 
-
 template <typename Backends>
 void LoggerCore<Backends>::shutdown() {
     {
@@ -139,10 +138,31 @@ void LoggerCore<Backends>::shutdown() {
 
     logCondition.notify_all();
 
+    // ✅ Process all remaining logs before stopping
+    while (!logQueue.empty()) {
+        std::vector<LogMessage> batch;
+        batch.reserve(MAX_BATCH_SIZE);
+
+        {
+            std::unique_lock<std::mutex> lock(mutex);
+            while (!logQueue.empty() && batch.size() < MAX_BATCH_SIZE) {
+                batch.push_back(std::move(logQueue.front()));
+                logQueue.pop_front();
+            }
+        }
+
+        for (auto& logMsg : batch) {
+            if (m_backends && m_settings) {
+                m_backends->dispatchLog(logMsg, *m_settings);
+            }
+        }
+    }
+
     if (logThread.joinable()) {
         logThread.join();
     }
 }
+
 
 inline std::string getCurrentTimestamp(const std::string& format) {
     std::ostringstream timestamp;

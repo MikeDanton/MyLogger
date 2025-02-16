@@ -1,6 +1,6 @@
 # myLogger - High-Performance Asynchronous Logger for C++
 
-🚀 **myLogger** is a **modular, dependency-injection-based asynchronous logging system** designed for **high-performance applications**. It supports **multiple logging backends**, **hot-reloading configuration**, **log level filtering**, and **real-time file watching**.
+🚀 **myLogger** is a **modular, dependency-injection-based asynchronous logging system** designed for **high-performance applications**. It supports **multiple logging backends**, **hot-reloading configuration**, **log level filtering**, and **real-time file watching** with `inotify` on Linux.
 
 ---
 
@@ -14,17 +14,17 @@
 ✔ **Thread-Safe** - Utilizes `std::mutex` and atomic variables for concurrency.  
 ✔ **Timestamped Log Entries** - Supports multiple timestamp formats.  
 ✔ **Real-Time File Watching** - Uses `inotify` (Linux) for detecting config changes.  
-✔ **Modular Core** - `LoggerCore` handles queuing and processing logs.  
 ✔ **Minimal Setup** - Automatically generates `logger.conf` if missing.  
-✔ **Benchmarking & Performance Tests** - Built-in Google Benchmark integration.
+✔ **Batch Processing for Efficiency** - Reduces locking contention.  
+✔ **Google Benchmark Integration** - Built-in performance testing.
 
 ---
 
-## 📚 Public API
+## 📚 Getting Started
 
 ### **1️⃣ Setting Up Logger with Multiple Backends**
 ```cpp
-#include "logger.hpp"
+#include "my_logger.hpp"
 #include "console_backend.hpp"
 #include "file_backend.hpp"
 
@@ -34,20 +34,19 @@ int main() {
     FileBackend file;
     
     Logger<ConsoleBackend, FileBackend> logger(settings, console, file);
-    logger.init();
     
     logger.log("INFO", "GENERAL", "Application started");
     return 0;
 }
 ```
 
-### **2️⃣ Configuration Reloading**
-Automatically reloads `logger.conf` when modified.
+### **2️⃣ File Watching & Configuration Reloading**
+To automatically reload `logger.conf` when modified:
 ```cpp
 #include "file_watcher.hpp"
 
 std::atomic<bool> exitFlag{false};
-std::thread configWatcher(FileWatcher::watch, std::ref(logger), "config/logger.conf", std::ref(exitFlag));
+std::thread configWatcher(FileWatcher<Logger<ConsoleBackend, FileBackend>>::watch, std::ref(logger), "config/logger.conf", std::ref(exitFlag));
 ```
 
 ### **3️⃣ Log Levels and Contexts**
@@ -61,7 +60,7 @@ logger.log("ERROR", "DATABASE", "Database connection failed");
 mkdir build && cd build
 cmake ..
 make
-./myLoggerApp
+./advancedLoggerDemo
 ```
 
 ---
@@ -87,11 +86,13 @@ classDiagram
     class LogBackend
     class ConsoleBackend
     class FileBackend
+    class FileWatcher
 
     Logger --> LoggerCore
     Logger --> LogBackend
     LogBackend <|-- ConsoleBackend
     LogBackend <|-- FileBackend
+    Logger --> FileWatcher
 ```
 
 ### **2️⃣ File Watching & Hot Reloading**
@@ -107,3 +108,4 @@ classDiagram
 
 👤 **Author**: @BoboBaggins  
 📜 **License**: MIT
+
