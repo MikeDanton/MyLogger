@@ -21,7 +21,6 @@ struct LogMessage {
     std::string timestamp;
 };
 
-// ✅ Forward declaration (for LoggerBackends)
 template <typename Backends>
 class LoggerCore {
 public:
@@ -29,25 +28,23 @@ public:
     ~LoggerCore();
 
     void enqueueLog(LogMessage&& logMsg, const LoggerSettings& settings);
-    void processQueue();
-    void flushQueue();
-
+    void shutdown();
     void setBackends(Backends& backends, LoggerSettings& settings);
 
 private:
-
     std::thread logThread;
     std::atomic<bool> exitFlag{false};
     std::condition_variable logCondition;
     std::mutex mutex;
 
-    std::atomic<int> queueHead{0};
-    std::atomic<int> queueTail{0};
+    int queueHead = 0;
+    int queueTail = 0;
     std::array<LogMessage, MAX_LOG_ENTRIES> logQueue;
 
-    // 🔹 Pointers to backends & settings
     Backends* m_backends{nullptr};
     LoggerSettings* m_settings{nullptr};
+
+    void processQueue();  // Background thread loop
 };
 
 // ✅ Function to get current timestamp
@@ -64,11 +61,7 @@ LoggerCore<Backends>::LoggerCore() {
 
 template <typename Backends>
 LoggerCore<Backends>::~LoggerCore() {
-    exitFlag.store(true);
-    logCondition.notify_all();
-    if (logThread.joinable()) {
-        logThread.join();
-    }
+    shutdown();
 }
 
 template <typename Backends>
@@ -78,44 +71,69 @@ void LoggerCore<Backends>::setBackends(Backends& backends, LoggerSettings& setti
 }
 
 template <typename Backends>
-void LoggerCore<Backends>::processQueue() {
-    while (!exitFlag.load()) {
-        std::unique_lock<std::mutex> lock(mutex);
-        logCondition.wait(lock, [this] {
-            return queueHead.load() != queueTail.load() || exitFlag.load();
-        });
-
-        if (exitFlag.load()) break;
-
-        while (queueHead.load() != queueTail.load()) {
-            LogMessage logMsg = logQueue[queueTail.load()];
-            queueTail.store((queueTail.load() + 1) % MAX_LOG_ENTRIES, std::memory_order_release);
-            
-            if (m_backends && m_settings) {
-                m_backends->dispatchLog(logMsg, *m_settings);
-            }
-        }
-    }
-}
-
-template <typename Backends>
 void LoggerCore<Backends>::enqueueLog(LogMessage&& logMsg, const LoggerSettings& settings) {
     if (settings.config.format.enableTimestamps) {
         logMsg.timestamp = getCurrentTimestamp(settings.config.format.timestampFormat);
     }
 
-    int next = (queueHead.load() + 1) % MAX_LOG_ENTRIES;
-    if (next == queueTail.load()) {
-        std::cerr << "[Logger] Log queue is full! Dropping message.\n";
-        return;
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+
+        int next = (queueHead + 1) % MAX_LOG_ENTRIES;
+        if (next == queueTail) {
+            std::cerr << "[Logger] Log queue is full! Dropping message.\n";
+            return;
+        }
+
+        logQueue[queueHead] = std::move(logMsg);
+        queueHead = next;
     }
 
-    logQueue[queueHead.load()] = std::move(logMsg);
-    queueHead.store(next, std::memory_order_release);
     logCondition.notify_one();
 }
 
-// ✅ Get Current Timestamp Function
+template <typename Backends>
+void LoggerCore<Backends>::processQueue() {
+    std::cout << "[LoggerCore] Logging thread started.\n";
+
+    while (true) {
+        std::unique_lock<std::mutex> lock(mutex);
+        logCondition.wait(lock, [this] {
+            return queueHead != queueTail || exitFlag.load();
+        });
+
+        if (exitFlag.load() && queueHead == queueTail) {
+            std::cout << "[LoggerCore] Exiting logging thread.\n";
+            break;
+        }
+
+        while (queueHead != queueTail) {
+            LogMessage logMsg = std::move(logQueue[queueTail]);
+            queueTail = (queueTail + 1) % MAX_LOG_ENTRIES;
+
+            lock.unlock(); // 🔥 Unlock before dispatch to avoid blocking other loggers
+            if (m_backends && m_settings) {
+                m_backends->dispatchLog(logMsg, *m_settings);
+            }
+            lock.lock();
+        }
+    }
+}
+
+template <typename Backends>
+void LoggerCore<Backends>::shutdown() {
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+        exitFlag.store(true);
+    }
+
+    logCondition.notify_all();
+
+    if (logThread.joinable()) {
+        logThread.join();
+    }
+}
+
 inline std::string getCurrentTimestamp(const std::string& format) {
     std::ostringstream timestamp;
     std::time_t now = std::time(nullptr);
@@ -131,23 +149,5 @@ inline std::string getCurrentTimestamp(const std::string& format) {
 
     return timestamp.str();
 }
-
-template <typename Backends>
-void LoggerCore<Backends>::flushQueue() {
-    std::cout << "[LoggerCore] Flushing log queue...\n";
-
-    std::unique_lock<std::mutex> lock(mutex);
-    while (queueHead.load() != queueTail.load()) {
-        LogMessage logMsg = logQueue[queueTail.load()];
-        queueTail.store((queueTail.load() + 1) % MAX_LOG_ENTRIES, std::memory_order_release);
-
-        if (m_backends && m_settings) {
-            m_backends->dispatchLog(logMsg, *m_settings);
-        }
-    }
-
-    std::cout << "[LoggerCore] Log queue flushed.\n";
-}
-
 
 #endif // LOGGER_CORE_HPP

@@ -2,6 +2,7 @@
 #define MOCK_BACKEND_HPP
 
 #include "logger_core.hpp"
+#include "logger.hpp"
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -14,7 +15,10 @@ public:
     void setup([[maybe_unused]] const LoggerSettings& settings) {}
 
     void write(const LogMessage& log, [[maybe_unused]] const LoggerSettings& settings) {
+        std::cout << "[MockBackend] Writing log: " << log.message << std::endl;
         logEntries.push_back(log.timestamp + " [" + log.level + "] " + log.context + ": " + log.message);
+
+        std::cout << "[MockBackend] Current log count: " << logEntries.size() << std::endl;
     }
 
     void flush() {
@@ -31,6 +35,12 @@ public:
     void reset() {
         logEntries.clear();
     }
+
+    void shutdown() {
+        std::cout << "[MockBackend] Shutting down logger." << std::endl;
+        flush();
+    }
+
 };
 
 #endif // MOCK_BACKEND_HPP

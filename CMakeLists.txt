@@ -4,8 +4,11 @@ project(myLogger LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(ENABLE_TESTS "Build unit tests" OFF)
+option(ENABLE_TESTS "Build unit tests" ON)
 option(ENABLE_BENCHMARKS "Build benchmarks" ON)
+
+# ✅ Enable testing at the top-level to make sure CTest picks up tests
+enable_testing()
 
 # 🔹 Force Benchmark not to use or fetch GTest
 set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
@@ -14,7 +17,6 @@ set(BENCHMARK_USE_BUNDLED_GTEST OFF CACHE BOOL "" FORCE)
 set(BENCHMARK_DOWNLOAD_DEPENDENCIES OFF CACHE BOOL "" FORCE)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-#    add_compile_options(-Wall -Wextra -Wpedantic -Werror)
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
@@ -24,6 +26,7 @@ else()
     add_compile_definitions(LOGGING_ENABLED=1)
 endif()
 
+# ✅ Logger Library
 add_library(myLoggerLib STATIC
         src/logger_config.cpp
         src/backends/console_backend.cpp
@@ -39,7 +42,7 @@ target_include_directories(myLoggerLib PUBLIC
         $<INSTALL_INTERFACE:include>
 )
 
-# 🔹 If not using toml++, remove it or set up as needed
+# 🔹 External Dependencies (Toml++)
 set(TOML_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include/external/tomlplusplus)
 add_library(tomlplusplus INTERFACE)
 target_include_directories(tomlplusplus INTERFACE
@@ -48,6 +51,7 @@ target_include_directories(tomlplusplus INTERFACE
 )
 target_link_libraries(myLoggerLib PUBLIC tomlplusplus)
 
+# ✅ Install Rules
 install(TARGETS myLoggerLib tomlplusplus EXPORT myLoggerLibConfig
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
@@ -56,6 +60,7 @@ install(TARGETS myLoggerLib tomlplusplus EXPORT myLoggerLibConfig
 install(DIRECTORY include/ DESTINATION include)
 install(EXPORT myLoggerLibConfig DESTINATION lib/cmake/myLoggerLib)
 
+# ✅ Add Subdirectories
 add_subdirectory(demo)
 
 if (ENABLE_TESTS)

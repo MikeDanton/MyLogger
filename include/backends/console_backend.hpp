@@ -11,6 +11,7 @@ public:
     void setup([[maybe_unused]] const LoggerSettings& settings) {}
     void write(const LogMessage& log, const LoggerSettings& settings);
     void flush();
+    void shutdown();  // ✅ Added shutdown
 };
 
 #endif // CONSOLE_BACKEND_HPP

@@ -8,10 +8,7 @@ static void BM_FileLogging(benchmark::State& state) {
     auto settings = std::make_shared<LoggerSettings>();
     FileBackend fileBackend;
 
-    // ✅ Explicitly specify the template parameter
-    LoggerBackends<FileBackend> backends(fileBackend);
-
-    // ✅ Explicitly specify Logger template type
+    // ✅ Use correct Logger instantiation
     Logger<FileBackend> logger(settings, fileBackend);
 
     for (auto _ : state) {
@@ -22,4 +19,3 @@ static void BM_FileLogging(benchmark::State& state) {
 }
 
 BENCHMARK(BM_FileLogging);
-BENCHMARK_MAIN();

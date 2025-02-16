@@ -56,6 +56,13 @@ public:
             logFile.flush();
         }
     }
+
+    void shutdown() {
+        flush();
+        if (logFile.is_open()) {
+            logFile.close();
+        }
+    }
 };
 
 #endif // FILE_BACKEND_HPP

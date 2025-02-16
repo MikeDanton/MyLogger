@@ -5,19 +5,22 @@
 #include <vector>
 #include <memory>
 
-// ✅ Benchmark Multi-Threaded Logging
-static void BM_MultiThreadedLogging(benchmark::State& state) {
+static void BM_HighThroughputLogging(benchmark::State& state) {
     auto settings = std::make_shared<LoggerSettings>();
     ConsoleBackend consoleBackend;
-    LoggerBackends backends(consoleBackend);
-    Logger<decltype(backends)> logger(settings, backends);
+
+    Logger<ConsoleBackend> logger(settings, consoleBackend);
+
+    const int numThreads = std::thread::hardware_concurrency();
+    const int logsPerThread = state.range(0); // Logs per thread from benchmark range
 
     for (auto _ : state) {
         std::vector<std::thread> threads;
-        for (int i = 0; i < 4; ++i) {  // 4 threads
-            threads.emplace_back([&logger]() {
-                for (int j = 0; j < 100; ++j) {
-                    logger.log("INFO", "THREAD", "Threaded Logging Performance Test");
+
+        for (int i = 0; i < numThreads; ++i) {
+            threads.emplace_back([&]() {
+                for (int j = 0; j < logsPerThread; ++j) {
+                    logger.log("INFO", "THREAD", "High-Throughput Logging Test");
                 }
             });
         }
@@ -25,8 +28,16 @@ static void BM_MultiThreadedLogging(benchmark::State& state) {
         for (auto& thread : threads) {
             thread.join();
         }
+
+        state.PauseTiming();  // ✅ Don't measure shutdown
+        logger.shutdown();
+        state.ResumeTiming();
     }
 
+    state.SetItemsProcessed(state.iterations() * numThreads * logsPerThread);
 }
 
-BENCHMARK(BM_MultiThreadedLogging);
+// ✅ Benchmark with different log amounts per thread (10k, 50k, 100k)
+BENCHMARK(BM_HighThroughputLogging)->Arg(10000)->Arg(50000)->Arg(100000);
+
+BENCHMARK_MAIN();

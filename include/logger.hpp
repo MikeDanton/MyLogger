@@ -10,20 +10,28 @@
 template <typename... Backends>
 struct LoggerBackends {
     static_assert(sizeof...(Backends) > 0, "Logger must have at least one backend.");
-
     std::tuple<Backends&...> backends;
 
     explicit LoggerBackends(Backends&... backends) : backends(std::tie(backends...)) {}
 
     void dispatchLog(const LogMessage& logMsg, const LoggerSettings& settings) {
-        std::apply([&](auto&... backend) {
-            ((backend.write(logMsg, settings)), ...);
-        }, backends);
+        std::apply([&](auto&... backend) { ((backend.write(logMsg, settings)), ...); }, backends);
     }
 
     void setup(const LoggerSettings& settings) {
+        std::apply([&](auto&... backend) { ((backend.setup(settings)), ...); }, backends);
+    }
+
+    // ✅ Calls shutdown() **only** on backends that support it
+    template <typename T>
+    using has_shutdown = decltype(std::declval<T>().shutdown(), std::true_type{});
+
+    template <typename T>
+    static constexpr bool has_shutdown_v = std::is_same_v<has_shutdown<T>, std::true_type>;
+
+    void shutdown() {
         std::apply([&](auto&... backend) {
-            ((backend.setup(settings)), ...);
+            ((has_shutdown_v<std::decay_t<decltype(backend)>> ? backend.shutdown() : void()), ...);
         }, backends);
     }
 };
@@ -32,10 +40,11 @@ template <typename... Backends>
 class Logger {
 public:
     explicit Logger(std::shared_ptr<LoggerSettings> settings, Backends&... backends);
+    ~Logger();
 
     void log(const char* level, const char* context, const char* message);
-    void flush();
     void updateSettings(const std::string& configFile);
+    void shutdown();
 
     static constexpr const char* CONFIG_FILE = "config/logger.conf";
 
@@ -50,7 +59,7 @@ private:
 template <typename... Backends>
 Logger<Backends...> createLogger(Backends&... backends) {
     auto settings = std::make_shared<LoggerSettings>();
-    return Logger<Backends...>(settings, backends...);
+    return Logger<Backends...>(std::move(settings), backends...);
 }
 
 template <typename... Backends>
@@ -64,13 +73,24 @@ Logger<Backends...>::Logger(std::shared_ptr<LoggerSettings> settings, Backends&.
     }, this->backends.backends);
 }
 
-// ✅ Update Configuration
+template <typename... Backends>
+Logger<Backends...>::~Logger() {
+    shutdown();
+}
+
+template <typename... Backends>
+void Logger<Backends...>::shutdown() {
+    std::cout << "[Logger] Initiating shutdown..." << std::endl;
+    logCore.shutdown();  // Properly stops the logging thread
+    backends.shutdown();
+    std::cout << "[Logger] Shutdown complete." << std::endl;
+}
+
 template <typename... Backends>
 void Logger<Backends...>::updateSettings(const std::string& configFile) {
     LoggerConfig::loadConfig(configFile, *settings);
 }
 
-// ✅ Determine if a Log Message Should Be Logged
 template <typename... Backends>
 bool Logger<Backends...>::shouldLog(const char* level, const char* context) const {
     if (!settings) return false;
@@ -93,7 +113,6 @@ bool Logger<Backends...>::shouldLog(const char* level, const char* context) cons
     return msgSeverity >= minContextSeverity;
 }
 
-// ✅ Logging Function
 template <typename... Backends>
 void Logger<Backends...>::log(const char* level, const char* context, const char* message) {
     if (!shouldLog(level, context)) return;
@@ -107,12 +126,6 @@ void Logger<Backends...>::log(const char* level, const char* context, const char
     };
 
     logCore.enqueueLog(std::move(logMsg), *settings);
-}
-
-// ✅ Flush Logs and Process Queue
-template <typename... Backends>
-void Logger<Backends...>::flush() {
-    logCore.processQueue();
 }
 
 #endif // LOGGER_HPP

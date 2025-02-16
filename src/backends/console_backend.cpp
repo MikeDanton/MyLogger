@@ -41,3 +41,7 @@ void ConsoleBackend::write(const LogMessage& log, const LoggerSettings& settings
 void ConsoleBackend::flush() {
     std::cout.flush();
 }
+
+void ConsoleBackend::shutdown() {
+    flush();
+}

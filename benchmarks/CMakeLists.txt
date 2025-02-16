@@ -1,19 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
-project(myLoggerBenchmarks LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+find_package(benchmark REQUIRED)
 
-# 🔹 Google Benchmark Setup
-include(FetchContent)
-FetchContent_Declare(
-        googlebenchmark
-        GIT_REPOSITORY https://github.com/google/benchmark.git
-        GIT_TAG v1.8.3
-)
-FetchContent_MakeAvailable(googlebenchmark)
-
-# 🔹 Benchmark Executables
 set(BENCHMARK_SOURCES
         benchmark_config_file_loading.cpp
         benchmark_console_logging_end_to_end.cpp
@@ -21,8 +9,12 @@ set(BENCHMARK_SOURCES
         benchmark_queue_throughput.cpp
 )
 
-foreach(benchmark_file ${BENCHMARK_SOURCES})
-    get_filename_component(benchmark_name ${benchmark_file} NAME_WE)
-    add_executable(${benchmark_name} ${benchmark_file})
-    target_link_libraries(${benchmark_name} PRIVATE myLoggerLib benchmark::benchmark benchmark::benchmark_main)
+foreach(bench_file ${BENCHMARK_SOURCES})
+    get_filename_component(bench_name ${bench_file} NAME_WE)
+
+    # 🔹 Ensure the target doesn't already exist
+    if (NOT TARGET ${bench_name}_benchmark)
+        add_executable(${bench_name}_benchmark ${bench_file})
+        target_link_libraries(${bench_name}_benchmark PRIVATE myLoggerLib benchmark::benchmark benchmark::benchmark_main)
+    endif()
 endforeach()
