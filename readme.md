@@ -1,94 +1,72 @@
 # myLogger - High-Performance Asynchronous Logger for C++
 
-🚀 **myLogger** is an **asynchronous, multi-backend logging system** designed for **high-performance applications**. It supports **console and file logging**, **hot-reloading configuration**, **log level filtering**, and **real-time file watching**.
+🚀 **myLogger** is a **modular, dependency-injection-based asynchronous logging system** designed for **high-performance applications**. It supports **multiple logging backends**, **hot-reloading configuration**, **log level filtering**, and **real-time file watching** with `inotify` on Linux.
 
 ---
 
 ## 📌 Features
 
 ✔ **Asynchronous Logging** - Background thread processing for minimal overhead.  
-✔ **Multiple Backends** - Console and file logging with easy extensibility.  
-✔ **Hot-Reloadable Configuration** - Changes to `logger.conf` apply in real-time.  
-✔ **Log Level Filtering** - Supports custom loglevel filtering with severity order.  
+✔ **Dependency Injection (DI) Design** - Easily plug-and-play different backends.  
+✔ **Multiple Logging Backends** - Console, file logging, and future extensibility.  
+✔ **Hot-Reloadable Configuration** - Updates `logger.conf` in real-time.  
+✔ **Log Level Filtering** - Supports configurable log severity levels.  
 ✔ **Thread-Safe** - Utilizes `std::mutex` and atomic variables for concurrency.  
-✔ **Timestamped Log Entries** - Automatic timestamp generation for log messages.  
+✔ **Timestamped Log Entries** - Supports multiple timestamp formats.  
 ✔ **Real-Time File Watching** - Uses `inotify` (Linux) for detecting config changes.  
-✔ **Minimal Setup** - Automatically creates `logger.conf` if missing.  
-✔ **Benchmarking & Performance Tests** - Built-in Google Benchmark integration.
+✔ **Minimal Setup** - Automatically generates `logger.conf` if missing.  
+✔ **Batch Processing for Efficiency** - Reduces locking contention.  
+✔ **Google Benchmark Integration** - Built-in performance testing.
 
 ---
 
-## 📚 Public API
+## 📚 Getting Started
 
-### **1️⃣ Basic Logging**
+### **1️⃣ Setting Up Logger with Multiple Backends**
 ```cpp
-#include "logger.hpp"
+#include "my_logger.hpp"
+#include "console_backend.hpp"
+#include "file_backend.hpp"
 
 int main() {
-    Logger& logger = Logger::getInstance();
-    logger.init();
+    auto settings = std::make_shared<LoggerSettings>();
+    ConsoleBackend console;
+    FileBackend file;
+    
+    Logger<ConsoleBackend, FileBackend> logger(settings, console, file);
     
     logger.log("INFO", "GENERAL", "Application started");
     return 0;
 }
 ```
 
-### **2️⃣ Configuration Reloading**
-Automatically reloads `logger.conf` when modified.
+### **2️⃣ File Watching & Configuration Reloading**
+To automatically reload `logger.conf` when modified:
 ```cpp
 #include "file_watcher.hpp"
 
 std::atomic<bool> exitFlag{false};
-std::thread configWatcher(FileWatcher::watch, std::ref(logger), "config/logger.conf", std::ref(exitFlag));
+std::thread configWatcher(FileWatcher<Logger<ConsoleBackend, FileBackend>>::watch, std::ref(logger), "config/logger.conf", std::ref(exitFlag));
 ```
 
-### **3️⃣ Log Levels**
+### **3️⃣ Log Levels and Contexts**
 ```cpp
 logger.log("INFO", "GENERAL", "This is an info message");
 logger.log("ERROR", "DATABASE", "Database connection failed");
 ```
-
----
-
-## 📊 Benchmarking
-Built-in performance testing with **Google Benchmark**:
-```sh
-mkdir build && cd build
-cmake ..
-make
-./myLoggerBenchmark
-```
-
-### **Benchmark Results**
-#### Logging Performance:
-```
-Benchmark                      Time             CPU   Iterations
-----------------------------------------------------------------
-BM_LoggingPerformance       1200 ns         1100 ns       500000
-```
-
-#### Config File Loading Performance:
-```
---------------------------------------------------------
-Benchmark              Time             CPU   Iterations
---------------------------------------------------------
-BM_LoadConfig       3200 ns         3100 ns       250000
-```
-
----
 
 ## 🚀 Running the Example Program
 ```sh
 mkdir build && cd build
 cmake ..
 make
-./myLoggerApp
+./advancedLoggerDemo
 ```
 
 ---
 
 ## 📌 Next Steps
-✅ **[ ] Implement more log backends (network, database, etc.)**  
+✅ **[ ] Implement additional backends (network, database, etc.)**  
 ✅ **[ ] Improve log rotation & compression**  
 ✅ **[ ] Optimize memory usage for high-throughput logging**  
 ✅ **[ ] Extend logging with JSON output for structured logs**
@@ -104,13 +82,17 @@ classDiagram
         +log(level, context, message)
         +flush()
     }
+    class LoggerCore
     class LogBackend
     class ConsoleBackend
     class FileBackend
+    class FileWatcher
 
+    Logger --> LoggerCore
     Logger --> LogBackend
     LogBackend <|-- ConsoleBackend
     LogBackend <|-- FileBackend
+    Logger --> FileWatcher
 ```
 
 ### **2️⃣ File Watching & Hot Reloading**
@@ -125,6 +107,5 @@ classDiagram
 ---
 
 👤 **Author**: @BoboBaggins  
-📜 **License**: MIT  
-🔥 **Contributions Welcome!** 🚀
+📜 **License**: MIT
 

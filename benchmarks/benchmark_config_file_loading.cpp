@@ -1,12 +1,12 @@
 #include <benchmark/benchmark.h>
-#include "loggerConfig.hpp"
+#include "logger_config.hpp"
 
 // ✅ Benchmark Config File Loading
 static void BM_LoadConfig(benchmark::State& state) {
     for (auto _ : state) {
-        LoggerConfig::loadConfig("logger.conf");
+        LoggerSettings settings;
+        LoggerConfig::loadConfig("config/logger.conf", settings);
     }
 }
 
 BENCHMARK(BM_LoadConfig);
-BENCHMARK_MAIN();
