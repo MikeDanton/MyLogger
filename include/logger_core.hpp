@@ -6,19 +6,36 @@
 #include <mutex>
 #include <thread>
 #include <condition_variable>
-#include <array>
+#include <deque>
 #include <iomanip>
+#include <vector>
 #include <iostream>
 
-// Maximum log entries before flushing
-#define MAX_LOG_ENTRIES 1024
+#define MAX_BATCH_SIZE 256  // ✅ Batching limit for efficiency
 
-// ✅ Log message structure
+#include <cstring>
+
 struct LogMessage {
-    std::string level;
-    std::string context;
-    std::string message;
-    std::string timestamp;
+    char level[16]{};    // ✅ Fixed-size buffer (was `std::string`)
+    char context[32]{};  // ✅ Fixed-size buffer
+    char message[256]{}; // ✅ Fixed-size buffer
+    char timestamp[32]{};
+
+    void set(const std::string& lvl, const std::string& ctx, const std::string& msg) {
+        std::strncpy(level, lvl.c_str(), sizeof(level) - 1);
+        std::strncpy(context, ctx.c_str(), sizeof(context) - 1);
+        std::strncpy(message, msg.c_str(), sizeof(message) - 1);
+
+        // Ensure null termination
+        level[sizeof(level) - 1] = '\0';
+        context[sizeof(context) - 1] = '\0';
+        message[sizeof(message) - 1] = '\0';
+    }
+
+    void setTimestamp(const std::string& ts) {
+        std::strncpy(timestamp, ts.c_str(), sizeof(timestamp) - 1);
+        timestamp[sizeof(timestamp) - 1] = '\0';
+    }
 };
 
 template <typename Backends>
@@ -36,23 +53,17 @@ private:
     std::atomic<bool> exitFlag{false};
     std::condition_variable logCondition;
     std::mutex mutex;
+    std::atomic<int> queueSize{0};  // ✅ Atomic size counter
 
-    int queueHead = 0;
-    int queueTail = 0;
-    std::array<LogMessage, MAX_LOG_ENTRIES> logQueue;
-
+    std::deque<LogMessage> logQueue;
     Backends* m_backends{nullptr};
     LoggerSettings* m_settings{nullptr};
 
-    void processQueue();  // Background thread loop
+    void processQueue();
 };
 
 // ✅ Function to get current timestamp
 std::string getCurrentTimestamp(const std::string& format);
-
-// ==========================
-// ✅ IMPLEMENTATION SECTION
-// ==========================
 
 template <typename Backends>
 LoggerCore<Backends>::LoggerCore() {
@@ -73,20 +84,13 @@ void LoggerCore<Backends>::setBackends(Backends& backends, LoggerSettings& setti
 template <typename Backends>
 void LoggerCore<Backends>::enqueueLog(LogMessage&& logMsg, const LoggerSettings& settings) {
     if (settings.config.format.enableTimestamps) {
-        logMsg.timestamp = getCurrentTimestamp(settings.config.format.timestampFormat);
+        logMsg.setTimestamp(getCurrentTimestamp(settings.config.format.timestampFormat));
     }
 
     {
         std::unique_lock<std::mutex> lock(mutex);
-
-        int next = (queueHead + 1) % MAX_LOG_ENTRIES;
-        if (next == queueTail) {
-            std::cerr << "[Logger] Log queue is full! Dropping message.\n";
-            return;
-        }
-
-        logQueue[queueHead] = std::move(logMsg);
-        queueHead = next;
+        logQueue.push_back(std::move(logMsg));
+        queueSize.fetch_add(1, std::memory_order_release);
     }
 
     logCondition.notify_one();
@@ -96,35 +100,41 @@ template <typename Backends>
 void LoggerCore<Backends>::processQueue() {
     std::cout << "[LoggerCore] Logging thread started.\n";
 
-    while (true) {
-        std::unique_lock<std::mutex> lock(mutex);
-        logCondition.wait(lock, [this] {
-            return queueHead != queueTail || exitFlag.load();
-        });
+    while (!exitFlag.load()) {
+        std::vector<LogMessage> batch;
+        batch.reserve(MAX_BATCH_SIZE);
 
-        if (exitFlag.load() && queueHead == queueTail) {
-            std::cout << "[LoggerCore] Exiting logging thread.\n";
-            break;
+        for (int spin = 0; spin < 100; ++spin) {  // ✅ Spin-wait to avoid lock contention
+            if (!logQueue.empty()) break;
+            std::this_thread::yield();
         }
 
-        while (queueHead != queueTail) {
-            LogMessage logMsg = std::move(logQueue[queueTail]);
-            queueTail = (queueTail + 1) % MAX_LOG_ENTRIES;
+        {
+            std::unique_lock<std::mutex> lock(mutex);
+            logCondition.wait_for(lock, std::chrono::milliseconds(10), [this] {
+                return !logQueue.empty() || exitFlag.load();
+            });
 
-            lock.unlock(); // 🔥 Unlock before dispatch to avoid blocking other loggers
+            while (!logQueue.empty() && batch.size() < MAX_BATCH_SIZE) {
+                batch.push_back(std::move(logQueue.front()));
+                logQueue.pop_front();
+            }
+        }
+
+        for (auto& logMsg : batch) {
             if (m_backends && m_settings) {
                 m_backends->dispatchLog(logMsg, *m_settings);
             }
-            lock.lock();
         }
     }
 }
+
 
 template <typename Backends>
 void LoggerCore<Backends>::shutdown() {
     {
         std::unique_lock<std::mutex> lock(mutex);
-        exitFlag.store(true);
+        exitFlag.store(true, std::memory_order_release);
     }
 
     logCondition.notify_all();

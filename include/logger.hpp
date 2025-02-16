@@ -117,13 +117,24 @@ template <typename... Backends>
 void Logger<Backends...>::log(const char* level, const char* context, const char* message) {
     if (!shouldLog(level, context)) return;
 
-    LogMessage logMsg{
-        level,
-        context,
-        message,
-        settings->config.format.enableTimestamps ?
-            getCurrentTimestamp(settings->config.format.timestampFormat) : ""
-    };
+    LogMessage logMsg;
+
+    std::strncpy(logMsg.level, level, sizeof(logMsg.level) - 1);
+    logMsg.level[sizeof(logMsg.level) - 1] = '\0';
+
+    std::strncpy(logMsg.context, context, sizeof(logMsg.context) - 1);
+    logMsg.context[sizeof(logMsg.context) - 1] = '\0';
+
+    std::strncpy(logMsg.message, message, sizeof(logMsg.message) - 1);
+    logMsg.message[sizeof(logMsg.message) - 1] = '\0';
+
+    if (settings->config.format.enableTimestamps) {
+        std::string timestampStr = getCurrentTimestamp(settings->config.format.timestampFormat);
+        std::strncpy(logMsg.timestamp, timestampStr.c_str(), sizeof(logMsg.timestamp) - 1);
+        logMsg.timestamp[sizeof(logMsg.timestamp) - 1] = '\0';
+    } else {
+        logMsg.timestamp[0] = '\0'; // Empty timestamp
+    }
 
     logCore.enqueueLog(std::move(logMsg), *settings);
 }

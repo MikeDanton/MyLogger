@@ -63,10 +63,14 @@ void LoggerConfig::printConfigState(const LoggerSettings& settings) {
 
 void LoggerConfig::loadOrGenerateConfig(const std::string& filepath, LoggerSettings& settings) {
     if (!std::filesystem::exists(filepath)) {
-        std::cerr << "[LoggerConfig] Config file missing. Generating default: " << filepath << "\n";
         generateDefaultConfig(filepath);
     }
     loadConfig(filepath, settings);
+
+    // ✅ Disable console output during benchmarking
+    if (std::getenv("BENCHMARK_MODE")) {
+        settings.config.backends.enableConsole = false;
+    }
 }
 
 void LoggerConfig::loadConfig(const std::string& filepath, LoggerSettings& settings) {

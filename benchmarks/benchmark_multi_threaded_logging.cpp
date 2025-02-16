@@ -4,19 +4,23 @@
 #include <thread>
 #include <vector>
 #include <memory>
+#include <fstream>
 
 static void BM_HighThroughputLogging(benchmark::State& state) {
     auto settings = std::make_shared<LoggerSettings>();
     ConsoleBackend consoleBackend;
 
+    // ✅ Redirect console output to /dev/null
+    std::ofstream nullStream("/dev/null");
+    std::streambuf* oldCout = std::cout.rdbuf(nullStream.rdbuf());
+
     Logger<ConsoleBackend> logger(settings, consoleBackend);
 
     const int numThreads = std::thread::hardware_concurrency();
-    const int logsPerThread = state.range(0); // Logs per thread from benchmark range
+    const int logsPerThread = state.range(0);
 
     for (auto _ : state) {
         std::vector<std::thread> threads;
-
         for (int i = 0; i < numThreads; ++i) {
             threads.emplace_back([&]() {
                 for (int j = 0; j < logsPerThread; ++j) {
@@ -29,10 +33,13 @@ static void BM_HighThroughputLogging(benchmark::State& state) {
             thread.join();
         }
 
-        state.PauseTiming();  // ✅ Don't measure shutdown
+        state.PauseTiming();
         logger.shutdown();
         state.ResumeTiming();
     }
+
+    // ✅ Restore stdout
+    std::cout.rdbuf(oldCout);
 
     state.SetItemsProcessed(state.iterations() * numThreads * logsPerThread);
 }
