@@ -2,12 +2,16 @@
 #include <filesystem>
 #include <iostream>
 #include <fstream>
+#include "logger_modules.hpp"
 
 LoggerSettings::LoggerSettings() {
     config.levels.enabledArray.fill(true);
     config.levels.severitiesArray.fill(0);
-    config.colors.logColorArray.fill(37);
-    config.colors.contextColorArray.fill(37);
+
+    // Fill with default white (`#FFFFFFFF` = fully opaque white)
+    config.colors.logColorArray.fill("#FFFFFFFF");
+    config.colors.contextColorArray.fill("#FFFFFFFF");
+
     config.contexts.contextSeverityArray.fill(0);
 }
 
@@ -61,11 +65,11 @@ void LoggerConfig::printConfigState(const LoggerSettings& settings) {
     std::cerr << "============================================" << std::endl;
 }
 
-void LoggerConfig::loadOrGenerateConfig(const std::string& filepath, LoggerSettings& settings) {
+void LoggerConfig::loadOrGenerateConfig(const std::string& filepath, LoggerSettings& settings, LoggerModules& modules) {
     if (!std::filesystem::exists(filepath)) {
         generateDefaultConfig(filepath);
     }
-    loadConfig(filepath, settings);
+    loadConfig(filepath, settings, modules);
 
     // ✅ Disable console output during benchmarking
     if (std::getenv("BENCHMARK_MODE")) {
@@ -73,7 +77,7 @@ void LoggerConfig::loadOrGenerateConfig(const std::string& filepath, LoggerSetti
     }
 }
 
-void LoggerConfig::loadConfig(const std::string& filepath, LoggerSettings& settings) {
+void LoggerConfig::loadConfig(const std::string& filepath, LoggerSettings& settings, LoggerModules& modules) {
     try {
         toml::table config = toml::parse_file(filepath);
 
@@ -85,7 +89,9 @@ void LoggerConfig::loadConfig(const std::string& filepath, LoggerSettings& setti
         loadSeverities(config, settings);
         loadColors(config, settings);
         loadContexts(config, settings);
-        precomputeColors(settings);
+
+        // ✅ Pass the ColorModule using its getter
+        precomputeColors(settings, modules.getColorModule());
 
     } catch (const toml::parse_error& err) {
         std::cerr << "[LoggerConfig] Failed to parse TOML config: " << err.what() << "\n";
@@ -93,28 +99,38 @@ void LoggerConfig::loadConfig(const std::string& filepath, LoggerSettings& setti
     }
 }
 
-void LoggerConfig::precomputeColors(LoggerSettings& settings) {
+void LoggerConfig::precomputeColors(LoggerSettings& settings, ColorModule& colorModule) {
     auto& colors = settings.config.colors;
 
-    // Reset all colors to default white (37)
-    colors.logColorArray.fill(37);
-    colors.contextColorArray.fill(37);
+    std::cerr << "[DEBUG] Parsed Log Colors:\n";
+    for (const auto& [key, value] : colors.parsedLogColors) {
+        std::cerr << "  " << key << " -> " << value << "\n";
+    }
 
-    // Apply log level colors
+    // Reset all colors to default white (`#FFFFFF`)
+    colors.logColorArray.fill("#FFFFFF");
+    colors.contextColorArray.fill("#FFFFFF");
+
+    // Apply log level colors (store in hex)
     for (size_t i = 0; i < settings.config.levels.levelNames.size(); i++) {
         std::string key = "level_" + settings.config.levels.levelNames[i];
+        std::cerr << "[DEBUG] Checking if " << key << " exists in parsedLogColors\n";
         if (colors.parsedLogColors.contains(key)) {
             colors.logColorArray[i] = colors.parsedLogColors[key];
+            std::cerr << "[DEBUG] Assigned " << colors.logColorArray[i] << " to " << key << "\n";
         }
     }
 
-    // Apply context colors
+    // Apply context colors (store in hex)
     for (size_t i = 0; i < settings.config.contexts.contextNames.size(); i++) {
         std::string key = "context_" + settings.config.contexts.contextNames[i];
         if (colors.parsedLogColors.contains(key)) {
             colors.contextColorArray[i] = colors.parsedLogColors[key];
         }
     }
+
+    // ✅ Pass parsed colors to ColorModule (now using hex instead of ANSI codes)
+    colorModule.setColorMap(colors.parsedLogColors);
 }
 
 // ✅ Load General Settings
@@ -205,7 +221,7 @@ void LoggerConfig::loadColors(const toml::table& config, LoggerSettings& setting
         if (auto categoryColors = config["colors"][category].as_table()) {
             for (auto&& [key, node] : *categoryColors) {
                 std::string fullKey = std::string(category) + "_" + std::string(key);
-                colors.parsedLogColors[fullKey] = node.as_integer()->get();
+                colors.parsedLogColors[fullKey] = node.value_or("#FFFFFF");  // Default white if missing
             }
         }
     }
@@ -291,21 +307,20 @@ CRITICAL  = 6
 color_mode = "level"
 
 [colors.level]
-VERBOSE   = 36
-DEBUG     = 36
-INFO      = 32
-WARN      = 33
-ERROR     = 31
-CRITICAL  = 31
+VERBOSE   = "#87CEEBFF"  # Light Blue (ANSI 36 - Cyan)
+DEBUG     = "#87CEEBFF"  # Light Blue (ANSI 36 - Cyan)
+INFO      = "#32CD32FF"  # Lime Green (ANSI 32 - Green)
+WARN      = "#FFD700FF"  # Gold (ANSI 33 - Yellow)
+ERROR     = "#FF0000FF"  # Red (ANSI 31 - Red)
+CRITICAL  = "#FF0000FF"  # Red (ANSI 31 - Red)
 
 [colors.context]
-GENERAL    = 37
-NETWORK    = 34
-DATABASE   = 35
-UI         = 36
-AUDIO      = 33
-RENDERING  = 31
-UNKNOWN    = 32
+GENERAL    = "#BEBEBEFF"  # Light Gray (ANSI 37 - White)
+NETWORK    = "#0000FFFF"  # Blue (ANSI 34 - Blue)
+DATABASE   = "#8A2BE2FF"  # BlueViolet (ANSI 35 - Magenta)
+UI         = "#87CEEBFF"  # Light Blue (ANSI 36 - Cyan)
+AUDIO      = "#FFD700FF"  # Gold (ANSI 33 - Yellow)
+RENDERING  = "#FF0000FF"  # Red (ANSI 31 - Red)
 
 [contexts]
 GENERAL    = "INFO"

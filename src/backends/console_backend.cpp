@@ -1,46 +1,38 @@
 #include "console_backend.hpp"
-#include "logger_config.hpp"
-#include "format_module.hpp"
-#include "color_module.hpp"
 #include <iostream>
-#include <cstdio>  // ✅ Required for snprintf()
+
+ConsoleBackend::ConsoleBackend(LoggerModules& modules)
+    : colorModule(modules.getColorModule()) {  // ✅ Initialize reference in initializer list
+    std::cerr << "[ConsoleBackend] Using color module from LoggerModules.\n";
+}
+
+void ConsoleBackend::setup(const LoggerSettings& settings) {
+    std::cerr << "[ConsoleBackend] Loading colors...\n";
+    colorModule.setColorMap(settings.config.colors.parsedLogColors);
+}
 
 void ConsoleBackend::write(const LogMessage& log, const LoggerSettings& settings) {
     const char* reset = "\033[0m";
-    const char* defaultColor = "\033[37m"; // Default white
-    const char* colorCode = defaultColor;
-
-    auto& display = settings.config.display;
     auto& colors = settings.config.colors;
 
-    char key[64];  // ✅ Preallocated buffer for color key
-    if (std::strcmp(colors.colorMode.c_str(), "context") == 0) {
-        std::snprintf(key, sizeof(key), "context_%s", log.context);
-    } else {
-        std::snprintf(key, sizeof(key), "level_%s", log.level);
-    }
+    std::string key = (colors.colorMode == "context")
+                        ? "context_" + std::string(log.context)
+                        : "level_" + std::string(log.level);
 
-    if (colors.parsedLogColors.contains(std::string(key))) {
-        colorCode = ColorModule::getColorCode(std::string(key), colors.parsedLogColors).c_str();
-    }
+    std::string hexColor = colorModule.getColor(key);
 
-    char formattedMessage[512];  // ✅ Preallocated buffer for log message
+    // ✅ Convert hex to ANSI foreground color
+    int ansiColor = 37; // Default: White
+    if (hexColor == "#FF0000FF") ansiColor = 31;  // Red
+    else if (hexColor == "#00FF00FF") ansiColor = 32;  // Green
+    else if (hexColor == "#FFD700FF") ansiColor = 33;  // Yellow
+    else if (hexColor == "#0000FFFF") ansiColor = 34;  // Blue
+    else if (hexColor == "#8A2BE2FF") ansiColor = 35;  // Magenta
+    else if (hexColor == "#87CEEBFF") ansiColor = 36;  // Cyan
 
-    // ✅ Hide level or context if toggles are enabled
-    if (display.hideLevelTag && display.hideContextTag) {
-        std::snprintf(formattedMessage, sizeof(formattedMessage), "%s", log.message);
-    } else if (display.hideLevelTag) {
-        std::snprintf(formattedMessage, sizeof(formattedMessage), "%s: %s", log.context, log.message);
-    } else if (display.hideContextTag) {
-        std::snprintf(formattedMessage, sizeof(formattedMessage), "[%s] %s", log.level, log.message);
-    } else {
-        std::snprintf(formattedMessage, sizeof(formattedMessage), "[%s] %s: %s", log.level, log.context, log.message);
-    }
+    std::string ansiCode = "\033[" + std::to_string(ansiColor) + "m";
 
-    std::cout << (display.enableColors ? colorCode : "")
-              << formattedMessage
-              << (display.enableColors ? reset : "")
-              << "\n";
+    std::cout << ansiCode << log.message << reset << "\n";
 }
 
 void ConsoleBackend::flush() {

@@ -3,6 +3,7 @@
 
 #include "logger_core.hpp"
 #include "logger_config.hpp"
+#include "logger_modules.hpp"  // ✅ Include to access modules
 #include <fstream>
 #include <sstream>
 #include <iomanip>
@@ -12,6 +13,7 @@ class FileBackend {
 private:
     std::ofstream logFile;
     std::string logFilePath;
+    LoggerModules& modules;  // ✅ Store reference to modules
 
     // ✅ Helper function to resolve filename format
     std::string resolveFilename(const std::string& format) {
@@ -23,6 +25,11 @@ private:
     }
 
 public:
+    // ✅ Accepts LoggerModules
+    explicit FileBackend(LoggerModules& mods) : modules(mods) {
+        std::cerr << "[FileBackend] Initialized with LoggerModules.\n";
+    }
+
     void setup(const LoggerSettings& settings) {
         if (settings.config.backends.enableFile) {
             // ✅ Ensure the directory exists

@@ -3,15 +3,18 @@
 
 #include "logger_core.hpp"
 #include "format_module.hpp"
-#include "color_module.hpp"
+#include "logger_modules.hpp"
 #include "logger_config.hpp"
 
 class ConsoleBackend {
+    ColorModule& colorModule;
 public:
-    void setup([[maybe_unused]] const LoggerSettings& settings) {}
+    explicit ConsoleBackend(LoggerModules& modules);
+
+    void setup(const LoggerSettings& settings);
     void write(const LogMessage& log, const LoggerSettings& settings);
     void flush();
-    void shutdown();  // ✅ Added shutdown
+    void shutdown();
 };
 
 #endif // CONSOLE_BACKEND_HPP

@@ -3,10 +3,15 @@
 
 #include <string>
 #include <unordered_map>
+#include <string_view>
 
 class ColorModule {
 public:
-    static std::string getColorCode(const std::string& key, const std::unordered_map<std::string, int>& colorMap);
+    explicit ColorModule() = default;  // No singleton, dependency-injected instead
+    void setColorMap(std::unordered_map<std::string, std::string> colors);
+    std::string getColor(std::string_view key) const;
+
+    std::unordered_map<std::string, std::string> colorMap;  // Stores colors as `#RRGGBBAA`
 };
 
 #endif // COLOR_MODULE_HPP

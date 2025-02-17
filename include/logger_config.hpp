@@ -1,6 +1,7 @@
 #ifndef LOGGER_CONFIG_HPP
 #define LOGGER_CONFIG_HPP
 
+#include "logger_modules.hpp"
 #include <string>
 #include <array>
 #include <unordered_map>
@@ -44,9 +45,9 @@ struct LoggerSettings {
 
     struct Colors {
         std::string colorMode = "level";
-        std::array<int, MAX_LEVELS> logColorArray = {};
-        std::array<int, MAX_CONTEXTS> contextColorArray = {};
-        std::unordered_map<std::string, int> parsedLogColors;
+        std::array<std::string, MAX_LEVELS> logColorArray = {};  // Stores hex colors like `"#RRGGBBAA"`
+        std::array<std::string, MAX_CONTEXTS> contextColorArray = {};
+        std::unordered_map<std::string, std::string> parsedLogColors;  // Hex colors
     };
 
     struct Contexts {
@@ -72,10 +73,10 @@ struct LoggerSettings {
 class LoggerConfig {
 public:
     static void printConfigState(const LoggerSettings& settings);
-    static void loadOrGenerateConfig(const std::string& filepath, LoggerSettings& settings);
-    static void loadConfig(const std::string& filepath, LoggerSettings& settings);
+    static void loadOrGenerateConfig(const std::string& filepath, LoggerSettings& settings, LoggerModules& modules);
+    static void loadConfig(const std::string& filepath, LoggerSettings& settings, LoggerModules& modules);
     static void generateDefaultConfig(const std::string& filepath);
-    static void precomputeColors(LoggerSettings& settings);
+    static void precomputeColors(LoggerSettings& settings, ColorModule& colorModule);
 
 private:
     static void loadGeneral(const toml::table& config, LoggerSettings& settings);
