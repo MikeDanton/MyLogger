@@ -31,8 +31,6 @@ add_library(myLoggerLib STATIC
         src/logger_config.cpp
         src/backends/console_backend.cpp
         src/backends/file_backend.cpp
-        src/format_module.cpp
-        src/color_module.cpp
 )
 
 target_include_directories(myLoggerLib PUBLIC

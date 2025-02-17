@@ -5,14 +5,10 @@
 
 // ✅ Benchmark Log Queue Throughput
 static void BM_LogQueueThroughput(benchmark::State& state) {
-    auto settings = std::make_shared<LoggerSettings>();
-    ConsoleBackend consoleBackend;
-
-    // ✅ Use correct Logger instantiation
-    Logger<ConsoleBackend> logger(settings, consoleBackend);
+    auto logger = std::make_unique<Logger<ConsoleBackend>>();
 
     for (auto _ : state) {
-        logger.log("INFO", "TEST", "Logging Performance Test");
+        logger->log("INFO", "TEST", "Logging Performance Test");
     }
 }
 

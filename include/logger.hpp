@@ -3,7 +3,6 @@
 
 #include "logger_core.hpp"
 #include "logger_config.hpp"
-#include "logger_modules.hpp"
 #include "console_backend.hpp"
 #include "file_backend.hpp"
 #include <memory>
@@ -50,7 +49,7 @@ private:
 };
 
 //------------------------------------------------------------------------------
-// Logger: Owns modules + actual backend objects
+// Logger: Owns backend objects
 //------------------------------------------------------------------------------
 template <typename... Backends>
 class Logger {
@@ -70,20 +69,19 @@ public:
     static constexpr const char* CONFIG_FILE = "config/logger.conf";
 
 private:
-    // We store everything needed for logger's lifetime
+    // Store logger settings
     std::shared_ptr<LoggerSettings> settings;
-    std::unique_ptr<LoggerModules> modules;
 
     // Own the actual backend objects in a tuple
     std::tuple<Backends...> backendStorage;
 
     // Then create references to them for LoggerCore
-    LoggerBackends<Backends...> backends;
+    std::unique_ptr<LoggerBackends<Backends...>> backends;
 
     LoggerCore<LoggerBackends<Backends...>> logCore;
 
-    // Optional additional constructor if passing custom settings or modules
-    Logger(std::shared_ptr<LoggerSettings> s, std::unique_ptr<LoggerModules> m);
+    // Optional additional constructor if passing custom settings
+    Logger(std::shared_ptr<LoggerSettings> s);
 
     bool shouldLog(const char* level, const char* context) const;
 };
@@ -93,40 +91,37 @@ private:
 //------------------------------------------------------------------------------
 template <typename... Backends>
 std::unique_ptr<Logger<Backends...>> Logger<Backends...>::createLogger() {
-    // Calls public default constructor
     return std::make_unique<Logger<Backends...>>();
 }
 
 //------------------------------------------------------------------------------
-// 2) Public Default Constructor
+// 2) Public Default Constructor (Fixed Backends Initialization)
 //------------------------------------------------------------------------------
 template <typename... Backends>
 Logger<Backends...>::Logger()
     : settings(std::make_shared<LoggerSettings>())
-    , modules(std::make_unique<LoggerModules>())
-    , backendStorage(Backends(*modules)...)
-    , backends(std::apply([&](auto&... bk) { return LoggerBackends<Backends...>(bk...); }, backendStorage))
+    , backendStorage(Backends()...)  // ✅ Remove dependency on modules
+    , backends(std::make_unique<LoggerBackends<Backends...>>(std::get<Backends>(backendStorage)...))  // ✅ Fixed!
     , logCore()
 {
-    LoggerConfig::loadOrGenerateConfig(CONFIG_FILE, *settings, *modules);
-    logCore.setBackends(backends, *settings);
-    backends.setup(*settings);
+    LoggerConfig::loadOrGenerateConfig(CONFIG_FILE, *settings);
+    logCore.setBackends(*backends, *settings);
+    backends->setup(*settings);
 }
 
 //------------------------------------------------------------------------------
-// Optional: Constructor that allows custom settings/modules if needed
+// Optional: Constructor that allows custom settings if needed
 //------------------------------------------------------------------------------
 template <typename... Backends>
-Logger<Backends...>::Logger(std::shared_ptr<LoggerSettings> s, std::unique_ptr<LoggerModules> m)
+Logger<Backends...>::Logger(std::shared_ptr<LoggerSettings> s)
     : settings(std::move(s))
-    , modules(std::move(m))
-    , backendStorage(Backends(*modules)...)
-    , backends(std::apply([&](auto&... bk) { return LoggerBackends<Backends...>(bk...); }, backendStorage))
+    , backendStorage(Backends()...)  // ✅ Remove dependency on modules
+    , backends(std::make_unique<LoggerBackends<Backends...>>(std::get<Backends>(backendStorage)...))  // ✅ Fixed!
     , logCore()
 {
-    LoggerConfig::loadOrGenerateConfig(CONFIG_FILE, *settings, *modules);
-    logCore.setBackends(backends, *settings);
-    backends.setup(*settings);
+    LoggerConfig::loadOrGenerateConfig(CONFIG_FILE, *settings);
+    logCore.setBackends(*backends, *settings);
+    backends->setup(*settings);
 }
 
 //------------------------------------------------------------------------------
@@ -144,7 +139,7 @@ template <typename... Backends>
 void Logger<Backends...>::shutdown() {
     std::cout << "[Logger] Initiating shutdown..." << std::endl;
     logCore.shutdown();
-    backends.shutdown();
+    backends->shutdown();
     std::cout << "[Logger] Shutdown complete." << std::endl;
 }
 
@@ -153,7 +148,7 @@ void Logger<Backends...>::shutdown() {
 //------------------------------------------------------------------------------
 template <typename... Backends>
 void Logger<Backends...>::updateSettings(const std::string& configFile) {
-    LoggerConfig::loadConfig(configFile, *settings, *modules);
+    LoggerConfig::loadOrGenerateConfig(configFile, *settings);
 }
 
 //------------------------------------------------------------------------------

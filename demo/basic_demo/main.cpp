@@ -3,17 +3,10 @@
 #include <iostream>
 
 int main() {
-    // ✅ Create LoggerModules instance
-    LoggerModules modules;
-
-    // ✅ Create backends with modules
-    ConsoleBackend consoleBackend(modules);
-    FileBackend fileBackend(modules);
-
-    // ✅ Create Logger using the factory function
+    // ✅ Create logger with ConsoleBackend and FileBackend
     auto logger = Logger<ConsoleBackend, FileBackend>::createLogger();
 
-    // ✅ Pass logger by reference
+    // ✅ Create LoggerController and start logging
     LoggerController loggerController(*logger);
     loggerController.start();
 
