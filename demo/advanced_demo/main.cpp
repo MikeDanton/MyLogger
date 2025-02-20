@@ -34,13 +34,20 @@ public:
 };
 
 int main() {
-    // 1) Create Logger
-    auto logger = Logger<ConsoleBackend, FileBackend>::createLogger();
+    // ✅ Create LoggerSettings
+    auto settings = std::make_shared<LoggerSettings>();
 
-    // 2) Dereference the unique_ptr to get Logger&
+    // ✅ Create ConsoleBackend & FileBackend instances
+    ConsoleBackend consoleBackend;
+    FileBackend fileBackend;
+
+    // ✅ Create Logger with explicit settings & backends
+    auto logger = Logger<ConsoleBackend, FileBackend>::createLogger(settings, consoleBackend, fileBackend);
+
+    // ✅ Dereference unique_ptr to pass reference to components
     auto& loggerRef = *logger;
 
-    // 3) Use loggerRef in your components
+    // ✅ Initialize system components with logger reference
     SystemMonitor system(loggerRef);
     NetworkManager network(loggerRef);
     ApplicationCore app(loggerRef);
@@ -49,7 +56,7 @@ int main() {
     network.monitorNetwork();
     app.runApp();
 
-    // 4) Cleanly shut down
+    // ✅ Cleanly shut down
     logger->shutdown();
     return 0;
 }

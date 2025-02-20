@@ -7,34 +7,25 @@
 #include <thread>
 #include <condition_variable>
 #include <deque>
-#include <iomanip>
 #include <vector>
 #include <iostream>
+#include <chrono>
+#include <sstream>
+#include <iomanip>
 
-#define MAX_BATCH_SIZE 256  // ✅ Batching limit for efficiency
-
-#include <cstring>
+#define MAX_BATCH_SIZE 256  // Batching limit for efficiency
 
 struct LogMessage {
-    char level[16]{};
-    char context[32]{};
-    char message[256]{};
-    char timestamp[32]{};
+    std::string level;
+    std::string context;
+    std::string message;
+    std::string timestamp;
 
-    void set(const std::string& lvl, const std::string& ctx, const std::string& msg) {
-        std::strncpy(level, lvl.c_str(), sizeof(level) - 1);
-        std::strncpy(context, ctx.c_str(), sizeof(context) - 1);
-        std::strncpy(message, msg.c_str(), sizeof(message) - 1);
+    LogMessage(std::string_view lvl, std::string_view ctx, std::string_view msg)
+        : level(lvl), context(ctx), message(msg) {}
 
-        // Ensure null termination
-        level[sizeof(level) - 1] = '\0';
-        context[sizeof(context) - 1] = '\0';
-        message[sizeof(message) - 1] = '\0';
-    }
-
-    void setTimestamp(const std::string& ts) {
-        std::strncpy(timestamp, ts.c_str(), sizeof(timestamp) - 1);
-        timestamp[sizeof(timestamp) - 1] = '\0';
+    void setTimestamp(std::string_view ts) {
+        timestamp = ts;
     }
 };
 
@@ -89,7 +80,7 @@ void LoggerCore<Backends>::enqueueLog(LogMessage&& logMsg, const LoggerSettings&
 
     {
         std::unique_lock<std::mutex> lock(mutex);
-        logQueue.push_back(std::move(logMsg));
+        logQueue.emplace_back(std::move(logMsg));
         queueSize.fetch_add(1, std::memory_order_release);
     }
 
@@ -100,14 +91,9 @@ template <typename Backends>
 void LoggerCore<Backends>::processQueue() {
     std::cout << "[LoggerCore] Logging thread started.\n";
 
-    while (!exitFlag.load()) {
+    while (!exitFlag.load(std::memory_order_acquire)) {
         std::vector<LogMessage> batch;
         batch.reserve(MAX_BATCH_SIZE);
-
-        for (int spin = 0; spin < 100; ++spin) {  // ✅ Spin-wait to avoid lock contention
-            if (!logQueue.empty()) break;
-            std::this_thread::yield();
-        }
 
         {
             std::unique_lock<std::mutex> lock(mutex);
@@ -116,7 +102,7 @@ void LoggerCore<Backends>::processQueue() {
             });
 
             while (!logQueue.empty() && batch.size() < MAX_BATCH_SIZE) {
-                batch.push_back(std::move(logQueue.front()));
+                batch.emplace_back(std::move(logQueue.front()));
                 logQueue.pop_front();
             }
         }
@@ -138,7 +124,6 @@ void LoggerCore<Backends>::shutdown() {
 
     logCondition.notify_all();
 
-    // ✅ Process all remaining logs before stopping
     while (!logQueue.empty()) {
         std::vector<LogMessage> batch;
         batch.reserve(MAX_BATCH_SIZE);
@@ -146,7 +131,7 @@ void LoggerCore<Backends>::shutdown() {
         {
             std::unique_lock<std::mutex> lock(mutex);
             while (!logQueue.empty() && batch.size() < MAX_BATCH_SIZE) {
-                batch.push_back(std::move(logQueue.front()));
+                batch.emplace_back(std::move(logQueue.front()));
                 logQueue.pop_front();
             }
         }
@@ -163,18 +148,19 @@ void LoggerCore<Backends>::shutdown() {
     }
 }
 
-
 inline std::string getCurrentTimestamp(const std::string& format) {
     std::ostringstream timestamp;
-    std::time_t now = std::time(nullptr);
-    std::tm* timeinfo = std::localtime(&now);
+    auto now = std::chrono::system_clock::now();
+    std::time_t timeT = std::chrono::system_clock::to_time_t(now);
+    std::tm timeinfo{};
+    localtime_r(&timeT, &timeinfo);
 
     if (format == "ISO") {
-        timestamp << std::put_time(timeinfo, "%Y-%m-%dT%H:%M:%S");
+        timestamp << std::put_time(&timeinfo, "%Y-%m-%dT%H:%M:%S");
     } else if (format == "short") {
-        timestamp << std::put_time(timeinfo, "%H:%M:%S");
+        timestamp << std::put_time(&timeinfo, "%H:%M:%S");
     } else if (format == "epoch") {
-        timestamp << now;
+        timestamp << timeT;
     }
 
     return timestamp.str();

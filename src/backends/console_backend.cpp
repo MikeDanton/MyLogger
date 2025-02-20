@@ -69,12 +69,8 @@ int ConsoleBackend::hexToAnsiColor(const std::string& hexColor) {
 // Setup Console Logging
 //------------------------------------------------------------------------------
 void ConsoleBackend::setup(const LoggerSettings& settings) {
-    std::cerr << "[ConsoleBackend] Console logging initialized.\n";
 
-    // ✅ Apply color mode
     colorMode = settings.config.colors.colorMode;
-
-    // ✅ Apply display settings
     hideLevelTag = settings.config.display.hideLevelTag;
     hideContextTag = settings.config.display.hideContextTag;
 }

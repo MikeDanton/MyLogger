@@ -3,8 +3,15 @@
 #include <iostream>
 
 int main() {
-    // ✅ Create logger with ConsoleBackend and FileBackend
-    auto logger = Logger<ConsoleBackend, FileBackend>::createLogger();
+    // ✅ Create LoggerSettings
+    auto settings = std::make_shared<LoggerSettings>();
+
+    // ✅ Create ConsoleBackend & FileBackend instances
+    ConsoleBackend consoleBackend;
+    FileBackend fileBackend;
+
+    // ✅ Create Logger with explicit settings & backends
+    auto logger = Logger<ConsoleBackend, FileBackend>::createLogger(settings, consoleBackend, fileBackend);
 
     // ✅ Create LoggerController and start logging
     LoggerController loggerController(*logger);
