@@ -10,7 +10,8 @@
 #define MAX_LEVELS 16
 #define MAX_CONTEXTS 16
 
-struct LoggerSettings {
+struct LoggerSettings
+{
     struct General {
         std::string logDirectory = "logs/";
         std::string logFilenameFormat = "log_%Y-%m-%d_%H-%M-%S.txt";
@@ -24,6 +25,7 @@ struct LoggerSettings {
         std::string logFormat = "plain";
     };
 
+    // Simple struct for toggling which backends are enabled
     struct Backends {
         bool enableConsole = true;
         bool enableFile = true;
@@ -44,9 +46,9 @@ struct LoggerSettings {
 
     struct Colors {
         std::string colorMode = "level";
-        std::array<int, MAX_LEVELS> logColorArray = {};
-        std::array<int, MAX_CONTEXTS> contextColorArray = {};
-        std::unordered_map<std::string, int> parsedLogColors;
+        std::array<std::string, MAX_LEVELS> logColorArray = {};
+        std::array<std::string, MAX_CONTEXTS> contextColorArray = {};
+        std::unordered_map<std::string, std::string> parsedLogColors;
     };
 
     struct Contexts {
@@ -55,29 +57,36 @@ struct LoggerSettings {
         std::vector<std::string> contextNames;
     };
 
-    // ✅ Grouping settings into a `Config` struct
+    // All settings grouped into one config
     struct Config {
-        General general;
-        Format format;
-        Backends backends;
-        Display display;
-        Levels levels;
-        Colors colors;
-        Contexts contexts;
+        General   general;
+        Format    format;
+        Backends  backends;   // <--- Merged here
+        Display   display;
+        Levels    levels;
+        Colors    colors;
+        Contexts  contexts;
     } config;
 
+    // Constructor
     LoggerSettings();
 };
 
 class LoggerConfig {
 public:
     static void printConfigState(const LoggerSettings& settings);
+
+    // Loads config from `filepath`, or generates a default if missing
     static void loadOrGenerateConfig(const std::string& filepath, LoggerSettings& settings);
-    static void loadConfig(const std::string& filepath, LoggerSettings& settings);
-    static void generateDefaultConfig(const std::string& filepath);
-    static void precomputeColors(LoggerSettings& settings);
 
 private:
+    // Actual function that parses the TOML file
+    static void loadConfig(const std::string& filepath, LoggerSettings& settings);
+
+    // If config file is missing, generate a default
+    static void generateDefaultConfig(const std::string& filepath);
+
+    // Helper functions
     static void loadGeneral(const toml::table& config, LoggerSettings& settings);
     static void loadFormat(const toml::table& config, LoggerSettings& settings);
     static void loadBackends(const toml::table& config, LoggerSettings& settings);

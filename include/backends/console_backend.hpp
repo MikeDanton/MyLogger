@@ -2,16 +2,25 @@
 #define CONSOLE_BACKEND_HPP
 
 #include "logger_core.hpp"
-#include "format_module.hpp"
-#include "color_module.hpp"
 #include "logger_config.hpp"
+#include <iostream>
 
 class ConsoleBackend {
 public:
-    void setup([[maybe_unused]] const LoggerSettings& settings) {}
+    ConsoleBackend() = default;
+
+    void setup(const LoggerSettings& settings);
     void write(const LogMessage& log, const LoggerSettings& settings);
     void flush();
-    void shutdown();  // ✅ Added shutdown
+    void shutdown();
+
+private:
+    static int hexToAnsiColor(const std::string& hexColor);
+
+    // ✅ Missing member variables
+    std::string colorMode = "level";   // Default mode
+    bool hideLevelTag = false;         // Default: show level tags
+    bool hideContextTag = false;       // Default: show context tags
 };
 
 #endif // CONSOLE_BACKEND_HPP

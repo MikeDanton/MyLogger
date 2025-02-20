@@ -44,9 +44,13 @@ void LoggerController<LoggerType>::start() {
     multiThreadedLogger = std::thread(&LoggerController::threadedLogging, this);
 
     std::cout << "[LoggerController] Starting FileWatcher thread...\n";
+
+    // 🔹 Fetch config file from settings (instead of using a non-existent static variable)
+    std::string configFilePath = "config/logger.conf";
+
     configWatcher = std::thread(&FileWatcher<std::decay_t<LoggerType>>::watch,
                                 std::ref(logger),
-                                LoggerType::CONFIG_FILE, // ✅ Fetch path from Logger
+                                configFilePath, // ✅ Now correctly fetches the config path
                                 std::ref(exitFlag));
 
     std::cout << "[LoggerController] All threads started!\n";

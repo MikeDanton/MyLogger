@@ -7,7 +7,7 @@
 #include <sys/inotify.h>
 #include <unistd.h>
 #include <sys/select.h>
-#include <cstring>  // For strerror
+#include <cstring>
 
 template <typename LoggerType>
 class FileWatcher {
@@ -38,7 +38,7 @@ public:
             FD_ZERO(&rfds);
             FD_SET(fd, &rfds);
 
-            timeout.tv_sec = 2;  // Check every 2 seconds
+            timeout.tv_sec = 2;
             timeout.tv_usec = 0;
 
             int retval = select(fd + 1, &rfds, nullptr, nullptr, &timeout);
@@ -46,7 +46,7 @@ public:
                 std::cerr << "[FileWatcher] Error: select() failed: " << strerror(errno) << "\n";
                 break;
             } else if (retval == 0) {
-                continue; // No change, keep waiting
+                continue;
             }
 
             ssize_t length = read(fd, buffer, sizeof(buffer));
@@ -59,7 +59,7 @@ public:
                 struct inotify_event* event = reinterpret_cast<struct inotify_event*>(ptr);
 
                 if (event->len > 0 && configPath.filename() == event->name) {
-                    logger.updateSettings(configFile);
+                    logger.updateSettings(configFile);  // ✅ Notify Logger to reload settings
                 }
             }
         }

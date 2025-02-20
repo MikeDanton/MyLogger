@@ -5,15 +5,13 @@
 
 // ✅ Benchmark Console Logging Performance
 static void BM_ConsoleLogging(benchmark::State& state) {
-    auto settings = std::make_shared<LoggerSettings>();
-    ConsoleBackend consoleBackend;
-
-    // ✅ Use correct Logger instantiation
-    Logger<ConsoleBackend> logger(settings, consoleBackend);
+    // ✅ Proper instantiation with the new Logger setup
+    auto logger = std::make_unique<Logger<ConsoleBackend>>();
 
     for (auto _ : state) {
-        logger.log("INFO", "BENCHMARK", "Testing console logging speed...");
+        logger->log("INFO", "BENCHMARK", "Testing console logging speed...");
     }
 }
 
 BENCHMARK(BM_ConsoleLogging);
+BENCHMARK_MAIN();

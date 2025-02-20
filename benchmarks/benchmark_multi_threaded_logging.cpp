@@ -6,15 +6,14 @@
 #include <memory>
 #include <fstream>
 
+// ✅ Benchmark for High-Throughput Logging
 static void BM_HighThroughputLogging(benchmark::State& state) {
-    auto settings = std::make_shared<LoggerSettings>();
-    ConsoleBackend consoleBackend;
+    // ✅ Proper instantiation with the new Logger setup
+    auto logger = std::make_unique<Logger<ConsoleBackend>>();
 
-    // ✅ Redirect console output to /dev/null
+    // ✅ Redirect console output to /dev/null to avoid excessive terminal spam
     std::ofstream nullStream("/dev/null");
     std::streambuf* oldCout = std::cout.rdbuf(nullStream.rdbuf());
-
-    Logger<ConsoleBackend> logger(settings, consoleBackend);
 
     const int numThreads = std::thread::hardware_concurrency();
     const int logsPerThread = state.range(0);
@@ -24,7 +23,7 @@ static void BM_HighThroughputLogging(benchmark::State& state) {
         for (int i = 0; i < numThreads; ++i) {
             threads.emplace_back([&]() {
                 for (int j = 0; j < logsPerThread; ++j) {
-                    logger.log("INFO", "THREAD", "High-Throughput Logging Test");
+                    logger->log("INFO", "THREAD", "High-Throughput Logging Test");
                 }
             });
         }
@@ -33,8 +32,9 @@ static void BM_HighThroughputLogging(benchmark::State& state) {
             thread.join();
         }
 
+        // ✅ Ensure logger is properly reset between iterations
         state.PauseTiming();
-        logger.shutdown();
+        logger->shutdown();
         state.ResumeTiming();
     }
 

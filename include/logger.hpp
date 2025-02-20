@@ -3,16 +3,20 @@
 
 #include "logger_core.hpp"
 #include "logger_config.hpp"
+#include "console_backend.hpp"
+#include "file_backend.hpp"
 #include <memory>
 #include <tuple>
 #include <iostream>
 
+//------------------------------------------------------------------------------
+// LoggerBackends: Manages multiple logging backends
+//------------------------------------------------------------------------------
 template <typename... Backends>
 struct LoggerBackends {
-    static_assert(sizeof...(Backends) > 0, "Logger must have at least one backend.");
-    std::tuple<Backends&...> backends;
+    std::tuple<Backends&...> backends; // References to actual backend objects
 
-    explicit LoggerBackends(Backends&... backends) : backends(std::tie(backends...)) {}
+    explicit LoggerBackends(Backends&... b) : backends(std::tie(b...)) {}
 
     void dispatchLog(const LogMessage& logMsg, const LoggerSettings& settings) {
         std::apply([&](auto&... backend) { ((backend.write(logMsg, settings)), ...); }, backends);
@@ -22,118 +26,140 @@ struct LoggerBackends {
         std::apply([&](auto&... backend) { ((backend.setup(settings)), ...); }, backends);
     }
 
-    // ✅ Calls shutdown() **only** on backends that support it
-    template <typename T>
-    using has_shutdown = decltype(std::declval<T>().shutdown(), std::true_type{});
-
-    template <typename T>
-    static constexpr bool has_shutdown_v = std::is_same_v<has_shutdown<T>, std::true_type>;
-
     void shutdown() {
-        std::apply([&](auto&... backend) {
-            ((has_shutdown_v<std::decay_t<decltype(backend)>> ? backend.shutdown() : void()), ...);
-        }, backends);
+        std::apply([&](auto&... backend) { ((shutdownIfAvailable(backend)), ...); }, backends);
+    }
+
+private:
+    template <typename B>
+    void shutdownIfAvailable(B& backend) {
+        if constexpr (requires { backend.shutdown(); }) {
+            backend.shutdown();
+        }
     }
 };
 
+//------------------------------------------------------------------------------
+// Logger: Owns backend objects and settings
+//------------------------------------------------------------------------------
 template <typename... Backends>
 class Logger {
 public:
-    explicit Logger(std::shared_ptr<LoggerSettings> settings, Backends&... backends);
-    ~Logger();
+    // ✅ Factory method for creating a logger instance
+    static std::unique_ptr<Logger<Backends...>> createLogger(std::shared_ptr<LoggerSettings> s, Backends&... backends);
 
-    void log(const char* level, const char* context, const char* message);
+    // ✅ Constructor that accepts backends explicitly
+    Logger(std::shared_ptr<LoggerSettings> s, Backends&... backends);
+
+    // ✅ Destructor & logging methods
+    ~Logger();
+    void log(std::string_view level, std::string_view context, std::string_view message);
     void updateSettings(const std::string& configFile);
     void shutdown();
 
-    static constexpr const char* CONFIG_FILE = "config/logger.conf";
-
 private:
     std::shared_ptr<LoggerSettings> settings;
-    LoggerBackends<Backends...> backends;
+    std::tuple<Backends&...> backendStorage;
+    LoggerBackends<Backends...> backendsWrapper;
     LoggerCore<LoggerBackends<Backends...>> logCore;
 
-    bool shouldLog(const char* level, const char* context) const;
+    bool shouldLog(std::string_view level, std::string_view context) const;
 };
 
+//------------------------------------------------------------------------------
+// ✅ Factory Method: Creates Logger with Provided Backends
+//------------------------------------------------------------------------------
 template <typename... Backends>
-Logger<Backends...> createLogger(Backends&... backends) {
-    auto settings = std::make_shared<LoggerSettings>();
-    return Logger<Backends...>(std::move(settings), backends...);
+std::unique_ptr<Logger<Backends...>> Logger<Backends...>::createLogger(std::shared_ptr<LoggerSettings> s, Backends&... backends) {
+    return std::make_unique<Logger<Backends...>>(std::move(s), backends...);
 }
 
+//------------------------------------------------------------------------------
+// ✅ Constructor: Accepts Backends Explicitly
+//------------------------------------------------------------------------------
 template <typename... Backends>
-Logger<Backends...>::Logger(std::shared_ptr<LoggerSettings> settings, Backends&... backends)
-    : settings(std::move(settings)), backends(backends...), logCore() {
-    LoggerConfig::loadOrGenerateConfig(CONFIG_FILE, *this->settings);
-    logCore.setBackends(this->backends, *this->settings);
-
-    std::apply([&](auto&... backend) {
-        ((backend.setup(*this->settings)), ...);
-    }, this->backends.backends);
+Logger<Backends...>::Logger(std::shared_ptr<LoggerSettings> s, Backends&... backends)
+    : settings(std::move(s))
+    , backendStorage(backends...)
+    , backendsWrapper(backends...)
+    , logCore()
+{
+    LoggerConfig::loadOrGenerateConfig("config/logger.conf", *settings);
+    logCore.setBackends(backendsWrapper, *settings);
+    backendsWrapper.setup(*settings);
 }
 
+//------------------------------------------------------------------------------
+// ✅ Destructor
+//------------------------------------------------------------------------------
 template <typename... Backends>
 Logger<Backends...>::~Logger() {
     shutdown();
 }
 
+//------------------------------------------------------------------------------
+// ✅ Shutdown
+//------------------------------------------------------------------------------
 template <typename... Backends>
 void Logger<Backends...>::shutdown() {
     std::cout << "[Logger] Initiating shutdown..." << std::endl;
-    logCore.shutdown();  // Properly stops the logging thread
-    backends.shutdown();
+    logCore.shutdown();
+    backendsWrapper.shutdown();
     std::cout << "[Logger] Shutdown complete." << std::endl;
 }
 
+//------------------------------------------------------------------------------
+// ✅ updateSettings
+//------------------------------------------------------------------------------
 template <typename... Backends>
 void Logger<Backends...>::updateSettings(const std::string& configFile) {
-    LoggerConfig::loadConfig(configFile, *settings);
+    LoggerConfig::loadOrGenerateConfig(configFile, *settings);
 }
 
+//------------------------------------------------------------------------------
+// ✅ shouldLog
+//------------------------------------------------------------------------------
 template <typename... Backends>
-bool Logger<Backends...>::shouldLog(const char* level, const char* context) const {
+bool Logger<Backends...>::shouldLog(std::string_view level, std::string_view context) const {
     if (!settings) return false;
 
-    int levelIndex = settings->config.levels.levelIndexMap.contains(level)
-                        ? settings->config.levels.levelIndexMap.at(level)
-                        : -1;
+    int levelIndex = -1;
+    auto lvlIt = settings->config.levels.levelIndexMap.find(std::string(level));
+    if (lvlIt != settings->config.levels.levelIndexMap.end()) {
+        levelIndex = lvlIt->second;
+    }
 
-    int contextIndex = settings->config.contexts.contextIndexMap.contains(context)
-                        ? settings->config.contexts.contextIndexMap.at(context)
-                        : -1;
+    int contextIndex = -1;
+    auto ctxIt = settings->config.contexts.contextIndexMap.find(std::string(context));
+    if (ctxIt != settings->config.contexts.contextIndexMap.end()) {
+        contextIndex = ctxIt->second;
+    }
 
-    if (levelIndex == -1 || !settings->config.levels.enabledArray[levelIndex]) return false;
+    if (levelIndex == -1 || !settings->config.levels.enabledArray[levelIndex]) {
+        return false;
+    }
 
     int msgSeverity = settings->config.levels.severitiesArray[levelIndex];
     int minContextSeverity = (contextIndex != -1)
-                                ? settings->config.contexts.contextSeverityArray[contextIndex]
-                                : 0;
+                               ? settings->config.contexts.contextSeverityArray[contextIndex]
+                               : 0;
 
     return msgSeverity >= minContextSeverity;
 }
 
+//------------------------------------------------------------------------------
+// ✅ log
+//------------------------------------------------------------------------------
 template <typename... Backends>
-void Logger<Backends...>::log(const char* level, const char* context, const char* message) {
-    if (!shouldLog(level, context)) return;
+void Logger<Backends...>::log(std::string_view level, std::string_view context, std::string_view message) {
+    if (!shouldLog(level, context)) {
+        return;
+    }
 
-    LogMessage logMsg;
-
-    std::strncpy(logMsg.level, level, sizeof(logMsg.level) - 1);
-    logMsg.level[sizeof(logMsg.level) - 1] = '\0';
-
-    std::strncpy(logMsg.context, context, sizeof(logMsg.context) - 1);
-    logMsg.context[sizeof(logMsg.context) - 1] = '\0';
-
-    std::strncpy(logMsg.message, message, sizeof(logMsg.message) - 1);
-    logMsg.message[sizeof(logMsg.message) - 1] = '\0';
+    LogMessage logMsg{std::string(level), std::string(context), std::string(message)};
 
     if (settings->config.format.enableTimestamps) {
-        std::string timestampStr = getCurrentTimestamp(settings->config.format.timestampFormat);
-        std::strncpy(logMsg.timestamp, timestampStr.c_str(), sizeof(logMsg.timestamp) - 1);
-        logMsg.timestamp[sizeof(logMsg.timestamp) - 1] = '\0';
-    } else {
-        logMsg.timestamp[0] = '\0'; // Empty timestamp
+        logMsg.setTimestamp(getCurrentTimestamp(settings->config.format.timestampFormat));
     }
 
     logCore.enqueueLog(std::move(logMsg), *settings);

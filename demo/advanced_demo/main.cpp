@@ -1,5 +1,3 @@
-// advanced_logger_demo.cpp
-
 #include "my_logger.hpp"
 #include <memory>
 #include <thread>
@@ -36,23 +34,29 @@ public:
 };
 
 int main() {
-    // Logger Configuration
+    // ✅ Create LoggerSettings
     auto settings = std::make_shared<LoggerSettings>();
+
+    // ✅ Create ConsoleBackend & FileBackend instances
     ConsoleBackend consoleBackend;
     FileBackend fileBackend;
-    Logger<ConsoleBackend, FileBackend> logger(settings, consoleBackend, fileBackend);
-    
-    // Inject Logger into Components
-    SystemMonitor system(logger);
-    NetworkManager network(logger);
-    ApplicationCore app(logger);
-    
-    // Run Demo
+
+    // ✅ Create Logger with explicit settings & backends
+    auto logger = Logger<ConsoleBackend, FileBackend>::createLogger(settings, consoleBackend, fileBackend);
+
+    // ✅ Dereference unique_ptr to pass reference to components
+    auto& loggerRef = *logger;
+
+    // ✅ Initialize system components with logger reference
+    SystemMonitor system(loggerRef);
+    NetworkManager network(loggerRef);
+    ApplicationCore app(loggerRef);
+
     system.checkSystem();
     network.monitorNetwork();
     app.runApp();
-    
-    // Graceful Shutdown
-    logger.shutdown();
+
+    // ✅ Cleanly shut down
+    logger->shutdown();
     return 0;
 }
