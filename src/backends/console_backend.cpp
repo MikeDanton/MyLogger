@@ -1,5 +1,5 @@
-#include "console_backend.hpp"
-#include "logger_config.hpp"
+#include "myLogger/backends/console_backend.hpp"
+#include "myLogger/logger_config.hpp"
 
 struct RGB {
     int r, g, b;

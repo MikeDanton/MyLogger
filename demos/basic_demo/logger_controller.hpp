@@ -1,7 +1,7 @@
 #ifndef LOGGER_CONTROLLER_HPP
 #define LOGGER_CONTROLLER_HPP
 
-#include "my_logger.hpp"
+#include "myLogger/my_logger.hpp"
 #include <atomic>
 #include <thread>
 

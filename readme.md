@@ -75,9 +75,9 @@ target_include_directories(MyApp PRIVATE ${myLoggerLib_INCLUDE_DIRS})
 
 ### **2️⃣ Setting Up Logger with Multiple Backends**
 ```cpp
-#include "my_logger.hpp"
-#include "console_backend.hpp"
-#include "file_backend.hpp"
+#include "myLogger/my_logger.hpp"
+#include "myLogger/backends/console_backend.hpp"
+#include "myLogger/backends/file_backend.hpp"
 
 int main() {
     auto settings = std::make_shared<LoggerSettings>();

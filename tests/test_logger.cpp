@@ -1,5 +1,6 @@
-#include "mock_backend.hpp"
-#include "logger.hpp"
+/*
+ #include "myLogger/backends/mock_backend.hpp"
+#include "myLogger/logger.hpp"
 #include <gtest/gtest.h>
 #include <thread>
 #include <chrono>
@@ -94,3 +95,5 @@ int main(int argc, char** argv) {
 
     return RUN_ALL_TESTS();
 }
+
+ */

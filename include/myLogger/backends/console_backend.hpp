@@ -1,8 +1,8 @@
 #ifndef CONSOLE_BACKEND_HPP
 #define CONSOLE_BACKEND_HPP
 
-#include "logger_core.hpp"
-#include "logger_config.hpp"
+#include "myLogger/logger_core.hpp"
+#include "myLogger/logger_config.hpp"
 #include <iostream>
 
 class ConsoleBackend {

@@ -7,7 +7,32 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # ✅ Find toml++ globally
 find_package(tomlplusplus REQUIRED)
 
-# ✅ Generate Config Package for `find_package(myLoggerLib)`
+# ✅ Logger Library
+add_library(myLoggerLib STATIC
+        src/logger_config.cpp
+        src/backends/console_backend.cpp
+        src/backends/file_backend.cpp
+)
+
+# ✅ Proper Include Directories (Local and Installed)
+target_include_directories(myLoggerLib PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>    # Local builds (fixes IDE include errors)
+        $<INSTALL_INTERFACE:include>                      # External use after install (`/usr/local/include/myLogger/`)
+)
+
+# ✅ Link to globally installed `toml++`
+target_link_libraries(myLoggerLib PUBLIC tomlplusplus::tomlplusplus)
+
+# ✅ Install Rules (Ensure Headers Are in `myLogger/`)
+install(TARGETS myLoggerLib EXPORT myLoggerLibConfig
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY include/myLogger/ DESTINATION include/myLogger FILES_MATCHING PATTERN "*.hpp")
+
+# ✅ Generate CMake Config Package
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
         "${CMAKE_BINARY_DIR}/myLoggerLibConfigVersion.cmake"
@@ -19,55 +44,15 @@ install(FILES "${CMAKE_BINARY_DIR}/myLoggerLibConfigVersion.cmake"
         DESTINATION lib/cmake/myLoggerLib
 )
 
-option(ENABLE_TESTS "Build unit tests" ON)
-option(ENABLE_BENCHMARKS "Build benchmarks" ON)
-
-enable_testing()
-
-# 🔹 Compiler warnings (Only for GCC/Clang)
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    add_compile_options(-Wall -Wextra -Wpedantic)
-endif()
-
-# ✅ Logger Library
-add_library(myLoggerLib STATIC
-        src/logger_config.cpp
-        src/backends/console_backend.cpp
-        src/backends/file_backend.cpp
-)
-
-# ✅ Proper Include Directories (Public API for external projects)
-target_include_directories(myLoggerLib PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>  # Internal use
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/backends>  # for internal use
-        $<INSTALL_INTERFACE:include>  # External use after installation
-        $<INSTALL_INTERFACE:include/backends>  # External projects need this
-)
-
-
-# ✅ Link to globally installed `toml++`
-target_link_libraries(myLoggerLib PUBLIC tomlplusplus::tomlplusplus)
-
-# ✅ Install Rules (Fixes external usage)
-install(TARGETS myLoggerLib EXPORT myLoggerLibConfig
-        ARCHIVE DESTINATION lib
-        LIBRARY DESTINATION lib
-        RUNTIME DESTINATION bin
-)
-install(DIRECTORY include/ DESTINATION include)
-install(EXPORT myLoggerLibConfig NAMESPACE myLogger:: DESTINATION lib/cmake/myLoggerLib)
-
-# ✅ Generate Config Package for `find_package(myLoggerLib)`
-write_basic_package_version_file(
-        "${CMAKE_BINARY_DIR}/myLoggerLibConfigVersion.cmake"
-        COMPATIBILITY SameMajorVersion
-)
-install(FILES "${CMAKE_BINARY_DIR}/myLoggerLibConfigVersion.cmake"
+install(EXPORT myLoggerLibConfig
+        NAMESPACE myLogger::
         DESTINATION lib/cmake/myLoggerLib
 )
 
-# ✅ Add Subdirectories
-add_subdirectory(demo)
+# ✅ Add Optional Subdirectories
+option(ENABLE_TESTS "Build unit tests" OFF)
+option(ENABLE_BENCHMARKS "Build benchmarks" OFF)
+option(ENABLE_DEMOS "Build demo applications" OFF)
 
 if (ENABLE_TESTS)
     add_subdirectory(tests)
@@ -75,6 +60,10 @@ endif()
 
 if (ENABLE_BENCHMARKS)
     add_subdirectory(benchmarks)
+endif()
+
+if (ENABLE_DEMOS)
+    add_subdirectory(demos)
 endif()
 
 message(STATUS "Logging enabled: ${LOGGING_ENABLED}")

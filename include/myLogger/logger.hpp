@@ -1,10 +1,10 @@
 #ifndef LOGGER_HPP
 #define LOGGER_HPP
 
-#include "logger_core.hpp"
-#include "logger_config.hpp"
-#include "console_backend.hpp"
-#include "file_backend.hpp"
+#include "myLogger/logger_core.hpp"
+#include "myLogger/logger_config.hpp"
+#include "myLogger/backends/console_backend.hpp"
+#include "myLogger/backends/file_backend.hpp"
 #include <memory>
 #include <tuple>
 #include <iostream>

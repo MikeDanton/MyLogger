@@ -1,7 +1,7 @@
 #ifndef LOGGER_CORE_HPP
 #define LOGGER_CORE_HPP
 
-#include "logger_config.hpp"
+#include "myLogger/logger_config.hpp"
 #include <atomic>
 #include <mutex>
 #include <thread>
