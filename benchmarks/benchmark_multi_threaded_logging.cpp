@@ -1,6 +1,6 @@
 #include <benchmark/benchmark.h>
-#include "logger.hpp"
-#include "console_backend.hpp"
+#include "myLogger/logger.hpp"
+#include "myLogger/backends/console_backend.hpp"
 #include <thread>
 #include <vector>
 #include <memory>

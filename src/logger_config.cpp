@@ -1,4 +1,4 @@
-#include "logger_config.hpp"
+#include "myLogger/logger_config.hpp"
 #include <filesystem>
 #include <iostream>
 #include <fstream>
@@ -346,20 +346,8 @@ ERROR     = "#FF0000FF"
 CRITICAL  = "#FF0000FF"
 
 [colors.context]
-GENERAL    = "#BEBEBEFF"
-NETWORK    = "#0000FFFF"
-DATABASE   = "#8A2BE2FF"
-UI         = "#87CEEBFF"
-AUDIO      = "#FFD700FF"
-RENDERING  = "#FF0000FF"
 
 [contexts]
-GENERAL    = "INFO"
-NETWORK    = "DEBUG"
-DATABASE   = "WARN"
-UI         = "INFO"
-AUDIO      = "DEBUG"
-RENDERING  = "WARN"
 )";
 
     std::cerr << "Default configuration created: " << filepath << "\n";
