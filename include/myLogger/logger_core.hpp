@@ -44,7 +44,7 @@ private:
     std::atomic<bool> exitFlag{false};
     std::condition_variable logCondition;
     std::mutex mutex;
-    std::atomic<int> queueSize{0};  // ✅ Atomic size counter
+    std::atomic<int> queueSize{0};
 
     std::deque<LogMessage> logQueue;
     Backends* m_backends{nullptr};
