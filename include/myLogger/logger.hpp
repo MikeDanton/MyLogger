@@ -23,6 +23,10 @@ struct LoggerBackends {
         std::apply([&](auto&... backend) { ((backend.write(logMsg, settings)), ...); }, backends);
     }
 
+    void flush() {
+        std::apply([&](auto&... backend) { ((flushIfAvailable(backend)), ...); }, backends);
+    }
+
     void setup(const LoggerSettings& settings) {
         std::apply([&](auto&... backend) { ((backend.setup(settings)), ...); }, backends);
     }
@@ -32,6 +36,13 @@ struct LoggerBackends {
     }
 
 private:
+    template <typename B>
+void flushIfAvailable(B& backend) {
+        if constexpr (requires { backend.flush(); }) {
+            backend.flush();
+        }
+    }
+
     template <typename B>
     void shutdownIfAvailable(B& backend) {
         if constexpr (requires { backend.shutdown(); }) {

@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
-project(AdvancedLoggerDemo)
+project(advanced_demo)
 
-set(CMAKE_CXX_STANDARD 20)
+add_executable(advanced_demo main.cpp)
+target_link_libraries(advanced_demo PRIVATE myLoggerLib) # Link with myLoggerLib
 
-add_executable(advancedLoggerDemo main.cpp)
-
-target_link_libraries(advancedLoggerDemo PRIVATE myLoggerLib)
+# Do NOT install this executable

@@ -16,7 +16,7 @@ struct LoggerSettings
         std::string logDirectory = "logs/";
         std::string logFilenameFormat = "log_%Y-%m-%d_%H-%M-%S.txt";
         int logRotationDays = 7;
-        std::string flushMode = "auto";
+        std::string flushMode = "instant";
     };
 
     struct Format {

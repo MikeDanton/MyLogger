@@ -53,7 +53,6 @@ private:
     void processQueue();
 };
 
-// ✅ Function to get current timestamp
 std::string getCurrentTimestamp(const std::string& format);
 
 template <typename Backends>
@@ -111,6 +110,10 @@ void LoggerCore<Backends>::processQueue() {
             if (m_backends && m_settings) {
                 m_backends->dispatchLog(logMsg, *m_settings);
             }
+        }
+
+        if (m_settings && m_settings->config.general.flushMode == "batch") {
+            m_backends->flush();
         }
     }
 }
