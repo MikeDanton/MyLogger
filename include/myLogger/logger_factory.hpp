@@ -5,6 +5,8 @@
 #include "backends/file_backend.hpp"
 #include <memory>
 
+namespace myLogger {
+
 class LoggerFactory {
 public:
     template <typename... Backends>
@@ -16,3 +18,5 @@ public:
         return std::make_unique<LoggerInstance<Backends...>>(settings, Backends{}...);
     }
 };
+
+} // namespace myLogger

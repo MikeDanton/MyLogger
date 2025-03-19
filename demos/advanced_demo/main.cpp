@@ -2,6 +2,7 @@
 #include <memory>
 #include <thread>
 
+using namespace myLogger;
 // Simulated System Components
 class SystemMonitor {
     LoggerAPI* api;
@@ -53,9 +54,6 @@ int main() {
     system.checkSystem();
     network.monitorNetwork();
     app.runApp();
-
-
-    api->shutdown(loggerInstance);
 
     return 0;
 }

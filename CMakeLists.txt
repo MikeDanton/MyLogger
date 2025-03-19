@@ -58,7 +58,7 @@ message(STATUS "toml++ linked to myLoggerLib")
 # Optional Subdirectories (Unit Tests, Benchmarks, Demos)
 option(ENABLE_TESTS "Build unit tests" OFF)
 option(ENABLE_BENCHMARKS "Build benchmarks" OFF)
-option(ENABLE_DEMOS "Build demo applications" OFF)
+option(ENABLE_DEMOS "Build demo applications" ON)
 
 if (ENABLE_TESTS)
     add_subdirectory(tests)

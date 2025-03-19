@@ -62,6 +62,7 @@ LoggerCore<Backends>::LoggerCore() {
 
 template <typename Backends>
 LoggerCore<Backends>::~LoggerCore() {
+    m_backends->flush();
     shutdown();
 }
 
