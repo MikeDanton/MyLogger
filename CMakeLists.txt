@@ -58,7 +58,7 @@ message(STATUS "toml++ linked to myLoggerLib")
 # Optional Subdirectories (Unit Tests, Benchmarks, Demos)
 option(ENABLE_TESTS "Build unit tests" OFF)
 option(ENABLE_BENCHMARKS "Build benchmarks" OFF)
-option(ENABLE_DEMOS "Build demo applications" ON)
+option(ENABLE_DEMOS "Build demo applications" OFF)
 
 if (ENABLE_TESTS)
     add_subdirectory(tests)
@@ -73,4 +73,6 @@ if (ENABLE_DEMOS)
 endif()
 
 # Install command:
-# sudo cmake --install cmake-build-release --prefix /usr/local
+# cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+# sudo cmake --build build --target install
+# sudo cmake --install build --prefix /usr/local

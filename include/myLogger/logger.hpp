@@ -170,7 +170,7 @@ void Logger<Backends...>::updateConfigWithNewContexts() {
         trackedContexts.clear();
     }
 
-    // ✅ Write updated config back to file
+    // Write updated config back to file
     std::ofstream outFile(configFile);
     if (!outFile) {
         std::cerr << "[Logger] Failed to open config file for writing.\n";
@@ -179,7 +179,6 @@ void Logger<Backends...>::updateConfigWithNewContexts() {
     outFile << config;
     outFile.close();
 
-    std::cout << "[Logger] Updated config file with new contexts and colors.\n";
 }
 
 //------------------------------------------------------------------------------

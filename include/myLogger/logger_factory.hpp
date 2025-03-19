@@ -7,15 +7,12 @@
 
 class LoggerFactory {
 public:
-    static std::unique_ptr<LoggerInstance<FileBackend, ConsoleBackend>> createLogger() {
-
+    template <typename... Backends>
+    static std::unique_ptr<LoggerInstance<Backends...>> createLogger() {
         auto settings = std::make_shared<LoggerSettings>();
         LoggerConfig::loadOrGenerateConfig("config/logger.conf", *settings);
 
-        FileBackend fileBackend;
-        ConsoleBackend consoleBackend;
-
-        // Return the LoggerInstance with managed settings
-        return std::make_unique<LoggerInstance<FileBackend, ConsoleBackend>>(settings, fileBackend, consoleBackend);
+        // Create actual instances of backends before passing them
+        return std::make_unique<LoggerInstance<Backends...>>(settings, Backends{}...);
     }
 };

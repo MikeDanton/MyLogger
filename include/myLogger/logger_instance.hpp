@@ -6,7 +6,7 @@
 template <typename... Backends>
 class LoggerInstance {
 public:
-    explicit LoggerInstance(std::shared_ptr<LoggerSettings> s, Backends&... backends)
+    explicit LoggerInstance(std::shared_ptr<LoggerSettings> s, Backends... backends)
         : settings(std::move(s)), backendsWrapper(backends...), logCore() {
 
         LoggerConfig::loadOrGenerateConfig("config/logger.conf", *settings);

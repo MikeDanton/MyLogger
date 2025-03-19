@@ -41,7 +41,7 @@ public:
 
 int main() {
 
-    auto logger = LoggerFactory::createLogger();
+    auto logger = LoggerFactory::createLogger<ConsoleBackend>();
 
     LoggerAPI* api = logger->getAPI();
     void* loggerInstance = logger->getInstance();

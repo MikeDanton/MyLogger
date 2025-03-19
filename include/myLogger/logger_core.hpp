@@ -88,7 +88,6 @@ void LoggerCore<Backends>::enqueueLog(LogMessage&& logMsg, const LoggerSettings&
 
 template <typename Backends>
 void LoggerCore<Backends>::processQueue() {
-    std::cout << "[LoggerCore] Logging thread started.\n";
 
     while (!exitFlag.load(std::memory_order_acquire)) {
         std::vector<LogMessage> batch;
