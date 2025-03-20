@@ -2,19 +2,18 @@
 
 #include "logger.hpp"
 #include "loggerAPI.hpp"
+#include <tuple>
+#include <memory>
 
 template <typename... Backends>
 class LoggerInstance {
 public:
-    explicit LoggerInstance(std::shared_ptr<LoggerSettings> s, Backends... backends)
-        : settings(std::move(s)), backendsWrapper(backends...), logCore() {
+    explicit LoggerInstance(std::shared_ptr<LoggerSettings> s, Backends&&... backends)
+        : settings(std::move(s)),
+          backends(std::make_tuple(std::move(backends)...)),  // ✅ Store as tuple (ownership)
+          logger(Logger<Backends...>::createLogger(settings, std::get<Backends>(this->backends)...)) {
 
-        LoggerConfig::loadOrGenerateConfig("config/logger.conf", *settings);
-        logCore.setBackends(backendsWrapper, *settings);
-        backendsWrapper.setup(*settings);
-
-        // Expose only `log()`
-        api.log = [](void* instance, const char* level, const char* context, const char* message) {
+        api.log = [](void* instance, std::string_view level, std::string_view context, std::string_view message) {
             static_cast<LoggerInstance*>(instance)->log(level, context, message);
         };
     }
@@ -23,25 +22,16 @@ public:
     void* getInstance() { return this; }
 
     void shutdown() {
-        logCore.shutdown();
-        backendsWrapper.shutdown();
+        logger->shutdown();
     }
 
 private:
     std::shared_ptr<LoggerSettings> settings;
-    LoggerBackends<Backends...> backendsWrapper;
-    LoggerCore<LoggerBackends<Backends...>> logCore;
-
-    myLogger::LoggerAPI api;  // Function pointer table
+    std::tuple<Backends...> backends;  // ✅ Own the backends inside the instance
+    std::unique_ptr<Logger<Backends...>> logger;
+    myLogger::LoggerAPI api;
 
     void log(std::string_view level, std::string_view context, std::string_view message) {
-        if (shouldLog(level, context)) {
-            LogMessage logMsg{std::string(level), std::string(context), std::string(message)};
-            logCore.enqueueLog(std::move(logMsg), *settings);
-        }
-    }
-
-    bool shouldLog(std::string_view level, std::string_view context) const {
-        return true;  // Simplified logic for filtering
+        logger->log(level, context, message);
     }
 };
