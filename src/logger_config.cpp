@@ -187,16 +187,18 @@ void LoggerConfig::loadLevels(const toml::table& config, LoggerSettings& setting
 // loadSeverities
 //------------------------------------------------------------------------------
 void LoggerConfig::loadSeverities(const toml::table& config, LoggerSettings& settings) {
-    if (config.contains("severities")) {
-        auto& levels = settings.config.levels;
-        levels.severitiesArray.fill(0);
-
-        for (size_t i = 0; i < levels.levelNames.size(); i++) {
-            const std::string& lvlName = levels.levelNames[i];
-            auto it = config["severities"].as_table()->find(lvlName);
-            if (it != config["severities"].as_table()->end()) {
-                levels.severitiesArray[i] = it->second.as_integer()->get();
-            }
+    auto* tbl = config["severities"].as_table();
+    auto& L = settings.config.levels;
+    L.severitiesArray.fill(0);
+    if (!tbl) return;
+    for (size_t i = 0; i < L.levelNames.size() && i < MAX_LEVELS; ++i) {
+        const std::string& name = L.levelNames[i];
+        if (auto v = (*tbl)[name].value<int64_t>()) {
+            L.severitiesArray[i] = static_cast<int>(*v);
+            continue;
+        }
+        if (auto vs = (*tbl)[name].value<std::string>()) {
+            try { L.severitiesArray[i] = std::stoi(*vs); } catch (...) {}
         }
     }
 }

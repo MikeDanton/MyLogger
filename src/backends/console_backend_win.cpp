@@ -51,6 +51,7 @@ namespace {
 }
 
 void ConsoleBackend::setup(const LoggerSettings& settings) {
+    (void)settings;
     vtEnabled = false;
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hOut != INVALID_HANDLE_VALUE) {

@@ -12,6 +12,7 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
+#include <ctime>
 
 #define MAX_BATCH_SIZE 256  // Batching limit for efficiency
 
@@ -152,21 +153,20 @@ void LoggerCore<Backends>::shutdown() {
 }
 
 inline std::string getCurrentTimestamp(const std::string& format) {
-    std::ostringstream timestamp;
-    auto now = std::chrono::system_clock::now();
-    std::time_t timeT = std::chrono::system_clock::to_time_t(now);
-    std::tm timeinfo{};
-    localtime_r(&timeT, &timeinfo);
-
+    std::time_t t = std::time(nullptr);
+    std::tm tm{};
+#if defined(_WIN32)
+    localtime_s(&tm, &t);
+#else
+    localtime_r(&t, &tm);
+#endif
+    char buf[64] = {0};
     if (format == "ISO") {
-        timestamp << std::put_time(&timeinfo, "%Y-%m-%dT%H:%M:%S");
-    } else if (format == "short") {
-        timestamp << std::put_time(&timeinfo, "%H:%M:%S");
-    } else if (format == "epoch") {
-        timestamp << timeT;
+        std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", &tm);
+    } else {
+        std::strftime(buf, sizeof(buf), format.c_str(), &tm);
     }
-
-    return timestamp.str();
+    return std::string(buf);
 }
 
 #endif // LOGGER_CORE_HPP
