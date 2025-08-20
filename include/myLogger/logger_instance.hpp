@@ -10,7 +10,7 @@ class LoggerInstance {
 public:
     explicit LoggerInstance(std::shared_ptr<LoggerSettings> s, Backends&&... backends)
         : settings(std::move(s)),
-          backends(std::make_tuple(std::move(backends)...)),  // ✅ Store as tuple (ownership)
+          backends(std::make_tuple(std::move(backends)...)),
           logger(Logger<Backends...>::createLogger(settings, std::get<Backends>(this->backends)...)) {
 
         api.log = [](void* instance, std::string_view level, std::string_view context, std::string_view message) {
@@ -27,7 +27,7 @@ public:
 
 private:
     std::shared_ptr<LoggerSettings> settings;
-    std::tuple<Backends...> backends;  // ✅ Own the backends inside the instance
+    std::tuple<Backends...> backends;
     std::unique_ptr<Logger<Backends...>> logger;
     myLogger::LoggerAPI api;
 

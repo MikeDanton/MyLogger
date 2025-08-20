@@ -15,7 +15,7 @@ private:
     std::string resolveFilename(const std::string& format);
 
 public:
-    FileBackend(const std::string& path = "config/logger.conf");
+    FileBackend() = default;
 
     void setup(const LoggerSettings& settings);
     void write(const LogMessage& log, const LoggerSettings& settings);

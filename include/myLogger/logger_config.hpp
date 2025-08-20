@@ -8,7 +8,7 @@
 #include <toml++/toml.hpp>
 
 #define MAX_LEVELS 16
-#define MAX_CONTEXTS 16
+#define MAX_CONTEXTS 256
 
 struct LoggerSettings
 {

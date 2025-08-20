@@ -194,33 +194,40 @@ void Logger<Backends...>::updateSettings(const std::string& configFile) {
 //------------------------------------------------------------------------------
 template <typename... Backends>
 bool Logger<Backends...>::shouldLog(std::string_view level, std::string_view context) const {
-    if (!settings) return false;
+    assert(settings && "Logger settings must not be null");
 
-    int levelIndex = -1;
-    auto lvlIt = settings->config.levels.levelIndexMap.find(std::string(level));
-    if (lvlIt != settings->config.levels.levelIndexMap.end()) {
-        levelIndex = lvlIt->second;
-    }
+    auto trim = [](std::string_view s) -> std::string {
+        size_t b = 0, e = s.size();
+        while (b < e && static_cast<unsigned char>(s[b]) <= ' ') ++b;
+        while (e > b && static_cast<unsigned char>(s[e - 1]) <= ' ') --e;
+        return std::string{s.substr(b, e - b)};
+    };
 
-    int contextIndex = -1;
+    const std::string lvlKey = trim(level);
+    const std::string ctxKey = trim(context);
+
+    const auto lvlIt = settings->config.levels.levelIndexMap.find(lvlKey);
+    if (lvlIt == settings->config.levels.levelIndexMap.end()) return false;
+
+    const int levelIndex = lvlIt->second;
+    if (!settings->config.levels.enabledArray[levelIndex]) return false;
+
+    const int msgSeverity = settings->config.levels.severitiesArray[levelIndex];
+
+    int minContextSeverity;
     {
         std::lock_guard<std::mutex> lock(contextMutex);
-        auto ctxIt = settings->config.contexts.contextIndexMap.find(std::string(context));
+        const auto ctxIt = settings->config.contexts.contextIndexMap.find(ctxKey);
         if (ctxIt == settings->config.contexts.contextIndexMap.end()) {
-            trackedContexts.insert(std::string(context));
+            trackedContexts.insert(ctxKey);
+            const auto defIt = settings->config.levels.levelIndexMap.find("INFO");
+            minContextSeverity = (defIt == settings->config.levels.levelIndexMap.end())
+                ? msgSeverity
+                : settings->config.levels.severitiesArray[defIt->second];
         } else {
-            contextIndex = ctxIt->second;
+            minContextSeverity = settings->config.contexts.contextSeverityArray[ctxIt->second];
         }
     }
-
-    if (levelIndex == -1 || !settings->config.levels.enabledArray[levelIndex]) {
-        return false;
-    }
-
-    int msgSeverity = settings->config.levels.severitiesArray[levelIndex];
-    int minContextSeverity = (contextIndex != -1)
-                               ? settings->config.contexts.contextSeverityArray[contextIndex]
-                               : 0;
 
     return msgSeverity >= minContextSeverity;
 }
