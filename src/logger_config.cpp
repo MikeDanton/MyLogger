@@ -302,7 +302,7 @@ void LoggerConfig::generateDefaultConfig(const std::string& filepath) {
 log_directory = "logs/"
 log_filename_format = "log_%Y-%m-%d_%H-%M-%S.txt"
 log_rotation_days = 7
-flush_mode = "auto"
+flush_mode = "instant"
 
 [format]
 log_timestamps = true

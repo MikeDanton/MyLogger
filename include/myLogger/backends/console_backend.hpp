@@ -17,10 +17,12 @@ public:
 private:
     static int hexToAnsiColor(const std::string& hexColor);
 
-    // ✅ Missing member variables
     std::string colorMode = "level";   // Default mode
     bool hideLevelTag = false;         // Default: show level tags
     bool hideContextTag = false;       // Default: show context tags
+    private:
+    bool vtEnabled = false;
+    bool isTty = true;
 };
 
 #endif // CONSOLE_BACKEND_HPP

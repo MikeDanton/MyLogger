@@ -8,7 +8,7 @@
 #include <toml++/toml.hpp>
 
 #define MAX_LEVELS 16
-#define MAX_CONTEXTS 16
+#define MAX_CONTEXTS 256
 
 struct LoggerSettings
 {
@@ -16,7 +16,7 @@ struct LoggerSettings
         std::string logDirectory = "logs/";
         std::string logFilenameFormat = "log_%Y-%m-%d_%H-%M-%S.txt";
         int logRotationDays = 7;
-        std::string flushMode = "auto";
+        std::string flushMode = "instant";
     };
 
     struct Format {

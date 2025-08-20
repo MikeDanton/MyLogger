@@ -53,7 +53,6 @@ private:
     void processQueue();
 };
 
-// ✅ Function to get current timestamp
 std::string getCurrentTimestamp(const std::string& format);
 
 template <typename Backends>
@@ -63,6 +62,7 @@ LoggerCore<Backends>::LoggerCore() {
 
 template <typename Backends>
 LoggerCore<Backends>::~LoggerCore() {
+    m_backends->flush();
     shutdown();
 }
 
@@ -89,7 +89,6 @@ void LoggerCore<Backends>::enqueueLog(LogMessage&& logMsg, const LoggerSettings&
 
 template <typename Backends>
 void LoggerCore<Backends>::processQueue() {
-    std::cout << "[LoggerCore] Logging thread started.\n";
 
     while (!exitFlag.load(std::memory_order_acquire)) {
         std::vector<LogMessage> batch;
@@ -111,6 +110,10 @@ void LoggerCore<Backends>::processQueue() {
             if (m_backends && m_settings) {
                 m_backends->dispatchLog(logMsg, *m_settings);
             }
+        }
+
+        if (m_settings && m_settings->config.general.flushMode == "batch") {
+            m_backends->flush();
         }
     }
 }

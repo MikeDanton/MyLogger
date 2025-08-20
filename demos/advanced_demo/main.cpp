@@ -2,61 +2,58 @@
 #include <memory>
 #include <thread>
 
+using namespace myLogger;
 // Simulated System Components
 class SystemMonitor {
-    Logger<ConsoleBackend, FileBackend>& logger;
+    LoggerAPI* api;
+    void* loggerInstance;
 public:
-    explicit SystemMonitor(Logger<ConsoleBackend, FileBackend>& log) : logger(log) {}
+    explicit SystemMonitor(LoggerAPI* api, void* instance) : api(api), loggerInstance(instance) {}
+
     void checkSystem() {
-        logger.log("INFO", "SYSTEM", "System running smoothly.");
-        logger.log("WARN", "SYSTEM", "Memory usage is getting high.");
+        api->log(loggerInstance, "INFO", "SYSTEM", "System running smoothly.");
+        api->log(loggerInstance, "WARN", "SYSTEM", "Memory usage is getting high.");
     }
 };
 
 class NetworkManager {
-    Logger<ConsoleBackend, FileBackend>& logger;
+    LoggerAPI* api;
+    void* loggerInstance;
 public:
-    explicit NetworkManager(Logger<ConsoleBackend, FileBackend>& log) : logger(log) {}
+    explicit NetworkManager(LoggerAPI* api, void* instance) : api(api), loggerInstance(instance) {}
+
     void monitorNetwork() {
-        logger.log("DEBUG", "NETWORK", "Checking network connectivity.");
-        logger.log("ERROR", "NETWORK", "Failed to connect to server.");
+        api->log(loggerInstance, "DEBUG", "NETWORK", "Checking network connectivity.");
+        api->log(loggerInstance, "ERROR", "NETWORK", "Failed to connect to server.");
     }
 };
 
 class ApplicationCore {
-    Logger<ConsoleBackend, FileBackend>& logger;
+    LoggerAPI* api;
+    void* loggerInstance;
 public:
-    explicit ApplicationCore(Logger<ConsoleBackend, FileBackend>& log) : logger(log) {}
+    explicit ApplicationCore(LoggerAPI* api, void* instance) : api(api), loggerInstance(instance) {}
+
     void runApp() {
-        logger.log("INFO", "APP", "Application is starting.");
-        logger.log("CRITICAL", "APP", "Unexpected shutdown detected!");
+        api->log(loggerInstance, "INFO", "APP", "Application is starting.");
+        api->log(loggerInstance, "CRITICAL", "APP", "Unexpected shutdown detected!");
     }
 };
 
 int main() {
-    // ✅ Create LoggerSettings
-    auto settings = std::make_shared<LoggerSettings>();
 
-    // ✅ Create ConsoleBackend & FileBackend instances
-    ConsoleBackend consoleBackend;
-    FileBackend fileBackend;
+    auto logger = LoggerFactory::createLogger<ConsoleBackend>();
 
-    // ✅ Create Logger with explicit settings & backends
-    auto logger = Logger<ConsoleBackend, FileBackend>::createLogger(settings, consoleBackend, fileBackend);
+    LoggerAPI* api = logger->getAPI();
+    void* loggerInstance = logger->getInstance();
 
-    // ✅ Dereference unique_ptr to pass reference to components
-    auto& loggerRef = *logger;
-
-    // ✅ Initialize system components with logger reference
-    SystemMonitor system(loggerRef);
-    NetworkManager network(loggerRef);
-    ApplicationCore app(loggerRef);
+    SystemMonitor system(api, loggerInstance);
+    NetworkManager network(api, loggerInstance);
+    ApplicationCore app(api, loggerInstance);
 
     system.checkSystem();
     network.monitorNetwork();
     app.runApp();
 
-    // ✅ Cleanly shut down
-    logger->shutdown();
     return 0;
 }

@@ -37,6 +37,11 @@ void FileBackend::write(const LogMessage& log, [[maybe_unused]] const LoggerSett
     std::ofstream logFile(logFilePath, std::ios::app);
     if (logFile.is_open()) {
         logFile << log.timestamp << " [" << log.level << "] " << log.context << ": " << log.message << "\n";
+
+        if (settings.config.general.flushMode == "instant") {
+            logFile.flush();
+        }
+
         logFile.close();
     }
 }
